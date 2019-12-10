@@ -41,6 +41,8 @@ $callback = function($msg) use ($connection) {
      * по результату сообщаем в очередь,
      * которую слушает connector-out
      */
+    sleep(1);
+
     $channel_out = $connection->channel();
     $channel_out->confirm_select();  // change channel mode to confirm mode
     $channel_out->queue_declare(RMQ_QUEUE_OUT, false, true, false, false);
