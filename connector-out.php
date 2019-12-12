@@ -14,6 +14,7 @@ use Camunda\Entity\Request\ExternalTaskRequest;
 use Camunda\Service\ExternalTaskService;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use Quancy\Logger\Logger;
+//use Predis;
 
 // Config
 $config = __DIR__ . '/config.php';
@@ -23,6 +24,63 @@ if (is_file($config)) {
 } elseif (is_file($config_env)) {
     require_once $config_env;
 }
+
+/**
+ * Good work
+ *
+ * @param $externalTaskService
+ * @param $message
+ * @param $updateVariables
+ */
+function good_work($externalTaskService, $message, $updateVariables) {
+    $externalTaskRequest = (new ExternalTaskRequest())
+        ->set('variables', $updateVariables)
+        ->set('workerId', $message['headers']['camundaWorkerId']);
+
+    $externalTaskService->complete($message['headers']['camundaExternalTaskId'], $externalTaskRequest);
+    Logger::log(sprintf("Completed task <%s>", $message['headers']['camundaExternalTaskId']), 'input', RMQ_QUEUE_OUT,'bpm-connector-out', 0 );
+};
+
+/**
+ * Bad work
+ *
+ * @param $externalTaskService
+ * @param $message
+ */
+function bad_work($externalTaskService, $message) {
+    $redis = new Predis\Client();
+    $retries = (int)$message['headers']['camundaRetries'] ?? 0;
+    $retryTimeout = (int)$message['headers']['camundaRetryTimeout'] ?? 0;
+
+    //Logger::log($retries.' '.$retryTimeout, 'input', RMQ_QUEUE_OUT,'bpm-connector-out', 0 );
+
+    //$key = 'counter-' . $message['headers']['camundaExternalTaskId'];
+
+    // считываем +1 из памяти
+    // @todo: надо считывать из message, а не из памяти же!
+    //$count = $redis->exists($key) ? $redis->get($key) : 0;
+
+    //print_r($retries - $count . ' ' . $message['headers']['camundaExternalTaskId'] . PHP_EOL);
+
+    $externalTaskRequest = (new ExternalTaskRequest())
+        ->set('errorMessage', "Worker task fatal error")
+        ->set('retries', $retries - 1)
+        ->set('retryTimeout', $retryTimeout)
+        ->set('workerId', $message['headers']['camundaWorkerId']);
+
+    $externalTaskService->handleFailure($message['headers']['camundaExternalTaskId'], $externalTaskRequest);
+
+    // добавляем +1 в память
+    //$redis->incr($key);
+
+    // reset counter in memory
+    //if($retries - $count === 0) {
+    //    $redis->del($key);
+    //}
+
+    //$externalTaskService->complete($message['headers']['camundaExternalTaskId'], $externalTaskRequest);
+    Logger::log(sprintf("Error in task <%s>", $message['headers']['camundaExternalTaskId']), 'input', RMQ_QUEUE_OUT,'bpm-connector-out', 0 );
+};
 
 /**
  * Callback
@@ -41,17 +99,21 @@ $callback = function($msg) {
         ]
     ];
 
-    // Request to camunda
+    // Request to Camunda
     $externalTaskService = new ExternalTaskService(CAMUNDA_API_URL);
 
-    $externalTaskRequest = (new ExternalTaskRequest())
-        ->set('variables', $updateVariables)
-        ->set('workerId', $message['headers']['camundaWorkerId']);
+    // Сomplete task if his status is success
+    // and retry it if is not succcess
+    $success = $message['headers']['success'] ?? false;
 
-    // @todo complete task if his status is success
-    $externalTaskService->complete($message['headers']['camundaExternalTaskId'], $externalTaskRequest);
+    if($success) {
+        // GOOD WORK
+        good_work($externalTaskService, $message, $updateVariables);
+    } else {
+        // BAD WORK
+        bad_work($externalTaskService, $message);
+    }
 
-    Logger::log(sprintf("Completed task <%s>", $message['headers']['camundaExternalTaskId']), 'input', RMQ_QUEUE_OUT,'bpm-connector-out', 0 );
 };
 
 // Open connection

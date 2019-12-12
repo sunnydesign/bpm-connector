@@ -10,8 +10,6 @@ sleep(1); // timeout for start through supervisor
 require_once __DIR__ . '/vendor/autoload.php';
 
 // Libs
-use Camunda\Entity\Request\ExternalTaskRequest;
-use Camunda\Service\ExternalTaskService;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Message\AMQPMessage;
 use Quancy\Logger\Logger;
@@ -50,12 +48,15 @@ $callback = function($msg) use ($connection) {
     // входящее сообщение
     $incomingMessage = json_decode($msg->body, true);
 
-    // исходящее сообщение
+    /**
+     * исходящее сообщение
+     * для успеха установить success в true - задача комплитится
+     * для ошибки установить success в false - задача фейлится
+     */
     $outgoingMessage = $incomingMessage;
-    $outgoingMessage['headers']['camundaTaskStatus'] = 'success';
+    $outgoingMessage['headers']['success'] = false;
 
     $message = json_encode($outgoingMessage);
-
     $msg = new AMQPMessage($message, ['delivery_mode' => 2]);
     $channel_out->basic_publish($msg, '', RMQ_QUEUE_OUT);
 };

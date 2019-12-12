@@ -31,7 +31,7 @@ class CamundaConnector
     protected $externalTaskTopic;
 
     /** @var int */
-    protected $lockDuration = 10000 * 60 * 60; // 1 hour
+    protected $lockDuration = CAMUNDA_CONNECTOR_LOCK_DURATION;
 
     /** @var string */
     protected $workerId;
@@ -50,23 +50,25 @@ class CamundaConnector
         $this->workerId = 'worker' . getmypid();
         $this->externalTaskService = new ExternalTaskService($this->camundaUrl);
 
+        Logger::log('Waiting for task. To exit press CTRL+C', 'input', RMQ_QUEUE_IN,'bpm-connector', 0);
+
         while (true) {
             // Quit on Ctrl+C
             pcntl_signal_dispatch();
             foreach ($this->fetchExternalTasks() as $externalTask) {
-                $queue = $externalTask->variables->queue->value;
                 Logger::log(
-                        sprintf(
-                            "Fetched and locked <%s> task <%s> of <%s> process instance <%s>",
-                            $externalTask->topicName,
-                            $externalTask->id,
-                            $externalTask->processDefinitionKey,
-                            $externalTask->processInstanceId
-                        ),
-                        'input',
-                        $queue,
-                        'bpm-connector',
-                        0
+                    sprintf(
+                        "Fetched and locked <%s> task <%s> of <%s> process instance <%s>",
+                        $externalTask->topicName,
+                        $externalTask->id,
+                        $externalTask->processDefinitionKey,
+                        $externalTask->processInstanceId
+                    ),
+                    'input',
+                    '-',
+                    '-',
+                    'bpm-connector',
+                    0
                 );
 
                 call_user_func([$this, $this->topicNameToMethodName($externalTask->topicName)], $externalTask);
@@ -123,29 +125,17 @@ class CamundaConnector
     }
 
     /**
-     * Get command line options
+     * Get options
      */
     protected function getOptions(): void
     {
-        // Get command line options
-        $usageHelp = 'Usage: php worker.php --camunda-url="http://localhost:8080/engine-rest" --task-topic="asset-ingest"';
-        $options = getopt('', ['camunda-url:', 'task-topic:', 'lock-duration:']);
-        foreach (['camunda-url', 'task-topic'] as $optionName) {
-            if (empty($options[$optionName])) {
-                fwrite(STDERR, "Error: Missing option --$optionName.\n");
-                fwrite(STDERR, $usageHelp . "\n");
-                exit(1);
-            }
-        }
-        $this->camundaUrl = $options['camunda-url'];
-        $this->externalTaskTopic = $options['task-topic'];
+        $this->camundaUrl = CAMUNDA_API_URL;
+        $this->externalTaskTopic = CAMUNDA_CONNECTOR_TOPIC;
+
         $methodName = $this->topicNameToMethodName($this->externalTaskTopic);
         if (!method_exists($this, $methodName)) {
             fwrite(STDERR, "Error: Wrong value for --task-topic. Method $methodName does not exist.\n");
             exit(1);
-        }
-        if (isset($options['lock-duration']) && (intval($options['lock-duration']) > 0)) {
-            $this->lockDuration = intval($options['lock-duration']);
         }
     }
 
@@ -165,28 +155,34 @@ class CamundaConnector
         $incomingMessageAsString = $externalTask->variables->message->value ?? json_encode(['data'=>'', 'headers'=>'']);
         $incomingMessage = json_decode($incomingMessageAsString, true);
 
-        // add external task id, process instance id, worker id in headers
-        $incomingMessage['headers']['camundaExternalTaskId'] = $externalTask->id;
-        $incomingMessage['headers']['camundaProcessInstanceId'] = $externalTask->processInstanceId;
-        $incomingMessage['headers']['camundaWorkerId'] = $this->workerId;
+        print_r($externalTask->retries);
 
-        /****/
+        // add external task id, process instance id, worker id in headers
+        $camundaHeaders = [
+            'camundaExternalTaskId'    => $externalTask->id,
+            'camundaProcessInstanceId' => $externalTask->processInstanceId,
+            'camundaWorkerId'          => $this->workerId,
+            'camundaRetries'           => $externalTask->retries ?? 5,
+            'camundaRetryTimeout'      => 1000,
+        ];
+        $incomingMessage['headers'] = array_merge($incomingMessage['headers'], $camundaHeaders);
+
+        // Open connection
         $connection = new AMQPStreamConnection(RMQ_HOST, RMQ_PORT, RMQ_USER, RMQ_PASS, RMQ_VHOST, false, 'AMQPLAIN', null, 'en_US', 3.0, 3.0, null, true, 60);
         $channel = $connection->channel();
-
-        // включить режим работы канала с ожиданием подтверждения
-        // при $nowait = true, сам метод не будет ждать ответа от сервера
         $channel->confirm_select(); // change channel mode
-
         $channel->queue_declare($queue, false, true, false, false);
-        /****/
 
+        // send message
         $message = json_encode($incomingMessage);
-
         $msg = new AMQPMessage($message, ['delivery_mode' => 2]);
-
         $channel->basic_publish($msg, '', $queue);
 
+        // for test
+        $channel->queue_declare(RMQ_QUEUE_ERR, false, true, false, false);
+        $channel->basic_publish($msg, '', RMQ_QUEUE_ERR);
+
+        // close channel
         $channel->close();
         $connection->close();
     }
