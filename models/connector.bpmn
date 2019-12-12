@@ -13,6 +13,8 @@
       <bpmn:extensionElements>
         <camunda:inputOutput>
           <camunda:inputParameter name="queue">test_in</camunda:inputParameter>
+          <camunda:inputParameter name="retries">3</camunda:inputParameter>
+          <camunda:inputParameter name="retryTimeout">3000</camunda:inputParameter>
         </camunda:inputOutput>
       </bpmn:extensionElements>
       <bpmn:incoming>SequenceFlow_0j6k07x</bpmn:incoming>

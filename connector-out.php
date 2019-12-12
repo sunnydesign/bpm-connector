@@ -14,7 +14,6 @@ use Camunda\Entity\Request\ExternalTaskRequest;
 use Camunda\Service\ExternalTaskService;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use Quancy\Logger\Logger;
-//use Predis;
 
 // Config
 $config = __DIR__ . '/config.php';
@@ -48,19 +47,8 @@ function good_work($externalTaskService, $message, $updateVariables) {
  * @param $message
  */
 function bad_work($externalTaskService, $message) {
-    $redis = new Predis\Client();
     $retries = (int)$message['headers']['camundaRetries'] ?? 0;
     $retryTimeout = (int)$message['headers']['camundaRetryTimeout'] ?? 0;
-
-    //Logger::log($retries.' '.$retryTimeout, 'input', RMQ_QUEUE_OUT,'bpm-connector-out', 0 );
-
-    //$key = 'counter-' . $message['headers']['camundaExternalTaskId'];
-
-    // считываем +1 из памяти
-    // @todo: надо считывать из message, а не из памяти же!
-    //$count = $redis->exists($key) ? $redis->get($key) : 0;
-
-    //print_r($retries - $count . ' ' . $message['headers']['camundaExternalTaskId'] . PHP_EOL);
 
     $externalTaskRequest = (new ExternalTaskRequest())
         ->set('errorMessage', "Worker task fatal error")
@@ -69,16 +57,6 @@ function bad_work($externalTaskService, $message) {
         ->set('workerId', $message['headers']['camundaWorkerId']);
 
     $externalTaskService->handleFailure($message['headers']['camundaExternalTaskId'], $externalTaskRequest);
-
-    // добавляем +1 в память
-    //$redis->incr($key);
-
-    // reset counter in memory
-    //if($retries - $count === 0) {
-    //    $redis->del($key);
-    //}
-
-    //$externalTaskService->complete($message['headers']['camundaExternalTaskId'], $externalTaskRequest);
     Logger::log(sprintf("Error in task <%s>", $message['headers']['camundaExternalTaskId']), 'input', RMQ_QUEUE_OUT,'bpm-connector-out', 0 );
 };
 

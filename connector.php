@@ -148,22 +148,22 @@ class CamundaConnector
      */
     protected function handleTask_connector($externalTask): void
     {
-        // queue
+        // Camunda parameters
         $queue = $externalTask->variables->queue->value;
+        $retries = $externalTask->variables->retries->value;
+        $retryTimeout = $externalTask->variables->retryTimeout->value;
 
         // incoming message from rabbit mq
         $incomingMessageAsString = $externalTask->variables->message->value ?? json_encode(['data'=>'', 'headers'=>'']);
         $incomingMessage = json_decode($incomingMessageAsString, true);
-
-        print_r($externalTask->retries);
 
         // add external task id, process instance id, worker id in headers
         $camundaHeaders = [
             'camundaExternalTaskId'    => $externalTask->id,
             'camundaProcessInstanceId' => $externalTask->processInstanceId,
             'camundaWorkerId'          => $this->workerId,
-            'camundaRetries'           => $externalTask->retries ?? 5,
-            'camundaRetryTimeout'      => 1000,
+            'camundaRetries'           => $externalTask->retries ?? $retries,
+            'camundaRetryTimeout'      => $retryTimeout,
         ];
         $incomingMessage['headers'] = array_merge($incomingMessage['headers'], $camundaHeaders);
 
@@ -179,8 +179,8 @@ class CamundaConnector
         $channel->basic_publish($msg, '', $queue);
 
         // for test
-        $channel->queue_declare(RMQ_QUEUE_ERR, false, true, false, false);
-        $channel->basic_publish($msg, '', RMQ_QUEUE_ERR);
+        // $channel->queue_declare(RMQ_QUEUE_ERR, false, true, false, false);
+        // $channel->basic_publish($msg, '', RMQ_QUEUE_ERR);
 
         // close channel
         $channel->close();
