@@ -35,11 +35,11 @@ php consumer.php
 - CAMUNDA_CONNECTOR_LOCK_DURATION=36000000
 - RMQ_HOST=10.8.0.58
 - RMQ_PORT=5672
-- RMQ_VHOST=test.queue.quancy.com.sg
+- RMQ_VHOST=quancy.com.sg
 - RMQ_USER=`<secret>`
 - RMQ_PASS=`<secret>`
-- RMQ_QUEUE_IN=test_in
-- RMQ_QUEUE_OUT=test_out
+- RMQ_QUEUE_IN=bpm_in
+- RMQ_QUEUE_OUT=bpm_out
 
 ##Start process in Camunda BPM
 

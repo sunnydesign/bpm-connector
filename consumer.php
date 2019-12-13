@@ -3,6 +3,8 @@
 
 /**
  * Camunda Connector Consumer
+ *
+ * Worker for tests
  */
 
 sleep(1); // timeout for start through supervisor

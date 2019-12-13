@@ -3,4 +3,4 @@
 /.idea
 /.env
 /config.php
-/deployment.secrets
+/.env

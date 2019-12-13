@@ -3,10 +3,15 @@
 
 /**
  * Camunda Connector
+ *
+ * BPM-to-RabbitMQ
  */
 
-require __DIR__ . '/vendor/autoload.php';
+sleep(1); // timeout for start through supervisor
 
+require_once __DIR__ . '/vendor/autoload.php';
+
+// Libs
 use Camunda\Entity\Request\ExternalTaskRequest;
 use Camunda\Service\ExternalTaskService;
 use PhpAmqpLib\Connection\AMQPStreamConnection;

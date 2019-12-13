@@ -12,7 +12,7 @@
     <bpmn:intermediateThrowEvent id="IntermediateThrowEvent_145fq21" name="Connector">
       <bpmn:extensionElements>
         <camunda:inputOutput>
-          <camunda:inputParameter name="queue">test_in</camunda:inputParameter>
+          <camunda:inputParameter name="queue">bpm_in</camunda:inputParameter>
           <camunda:inputParameter name="retries">3</camunda:inputParameter>
           <camunda:inputParameter name="retryTimeout">3000</camunda:inputParameter>
         </camunda:inputOutput>

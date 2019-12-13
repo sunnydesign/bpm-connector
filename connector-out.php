@@ -3,6 +3,8 @@
 
 /**
  * Camunda Connector Out
+ *
+ * RabbitMQ-to-BPM
  */
 
 sleep(1); // timeout for start through supervisor
