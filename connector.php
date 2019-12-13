@@ -50,7 +50,7 @@ class CamundaConnector
         $this->workerId = 'worker' . getmypid();
         $this->externalTaskService = new ExternalTaskService($this->camundaUrl);
 
-        Logger::log('Waiting for task. To exit press CTRL+C', 'input', RMQ_QUEUE_IN,'bpm-connector', 0);
+        Logger::log('Waiting for task. To exit press CTRL+C', '-', '-','bpm-connector', 0);
 
         while (true) {
             // Quit on Ctrl+C
