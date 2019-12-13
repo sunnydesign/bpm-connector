@@ -15,5 +15,5 @@ Using for transmitting variables from External Tasks to another external workers
 - Worker for test connector
 - README and CHANGELOG
 
-[unreleased]: https://gitlab.com/quancy-core/bpm-connector/-/tags/v0.0.1
-[0.1]: https://gitlab.com/quancy-core/bpm-connector/-/tags/v0.0.1
+[unreleased]: https://gitlab.com/quancy-core/bpm-connector/-/tags/v0.1
+[0.1]: https://gitlab.com/quancy-core/bpm-connector/-/tags/v0.1
