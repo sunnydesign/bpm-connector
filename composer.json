@@ -1,0 +1,13 @@
+{
+    "require": {
+        "php": ">=7.1.0",
+        "ext-pcntl": "*",
+        "endpot/camunda-rest-client": "^1.1",
+        "php-amqplib/php-amqplib": "2.11.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Quancy\\Logger\\": "src/Quancy/Logger"
+        }
+    }
+}

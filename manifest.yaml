@@ -1,0 +1,14 @@
+application:
+  name: bpm-connector
+  title: Connector BPM-to-RabbitMQ-to-BPM
+  author: Andrey Mokretsov
+  language:
+    - php7.2
+  depends:
+    - composer
+    - php-amqplib
+    - ext-pcntl
+    - camunda-rest-client
+  queues:
+    out:
+      - bpm_out

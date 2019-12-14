@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_0w41w6f" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="3.5.0">
+  <bpmn:message id="Message_1jfi9kf" name="message-listener" />
+  <bpmn:process id="process-connector" name="process-connector" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_0lx29ar">
+      <bpmn:outgoing>SequenceFlow_0j6k07x</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="EndEvent_1qypwwa">
+      <bpmn:incoming>SequenceFlow_1p529ro</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="SequenceFlow_0j6k07x" sourceRef="StartEvent_0lx29ar" targetRef="IntermediateThrowEvent_145fq21" />
+    <bpmn:intermediateThrowEvent id="IntermediateThrowEvent_145fq21" name="Connector">
+      <bpmn:extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="queue">bpm_in</camunda:inputParameter>
+          <camunda:inputParameter name="retries">3</camunda:inputParameter>
+          <camunda:inputParameter name="retryTimeout">3000</camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>SequenceFlow_0j6k07x</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_1p529ro</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDefinition_0vt9ozb" camunda:type="external" camunda:topic="connector" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:sequenceFlow id="SequenceFlow_1p529ro" sourceRef="IntermediateThrowEvent_145fq21" targetRef="EndEvent_1qypwwa" />
+  </bpmn:process>
+  <bpmn:error id="Error_06ktm1q" name="Fail task Error name" errorCode="fail-task" camunda:errorMessage="task failed" />
+  <bpmn:error id="Error_0v82awm" name="Fail Task Cycled" errorCode="fail-task-cycled" camunda:errorMessage="Fail task  cycled" />
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="process-connector">
+      <bpmndi:BPMNShape id="StartEvent_0lx29ar_di" bpmnElement="StartEvent_0lx29ar">
+        <dc:Bounds x="152" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_1qypwwa_di" bpmnElement="EndEvent_1qypwwa">
+        <dc:Bounds x="582" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_0j6k07x_di" bpmnElement="SequenceFlow_0j6k07x">
+        <di:waypoint x="188" y="120" />
+        <di:waypoint x="372" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="IntermediateThrowEvent_145fq21_di" bpmnElement="IntermediateThrowEvent_145fq21">
+        <dc:Bounds x="372" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="365" y="145" width="52" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_1p529ro_di" bpmnElement="SequenceFlow_1p529ro">
+        <di:waypoint x="408" y="120" />
+        <di:waypoint x="582" y="120" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
