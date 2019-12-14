@@ -1,8 +1,18 @@
 version: '3'
 services:
-  bpm-connector:
+  bpm-connector1:
     build: .
     image: docker.quancy.com.sg/bpm-connector:${VERSION-latest}
+    container_name: bpm1
+    network_mode: bridge
+    restart: on-failure
+    env_file:
+      - .env
+
+  bpm-connector2:
+    build: .
+    image: docker.quancy.com.sg/bpm-connector:${VERSION-latest}
+    container_name: bpm2
     network_mode: bridge
     restart: on-failure
     env_file:
