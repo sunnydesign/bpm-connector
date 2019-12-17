@@ -45,7 +45,28 @@ class CamundaConnector
     protected $externalTaskService;
 
     /** @var array **/
-    protected $incomingParams = ['queue', 'retries', 'retryTimeout'];
+    protected $incomingParams = [
+        [
+            'name'     => 'queue',
+            'required' => true,
+            'default'  => false
+        ],
+        [
+            'name'     => 'vhost',
+            'required' => false,
+            'default'  => RMQ_VHOST
+        ],
+        [
+            'name'     => 'retries',
+            'required' => false,
+            'default'  => CAMUNDA_CONNECTOR_DEFAULT_RETRIES
+        ],
+        [
+            'name'     => 'retryTimeout',
+            'required' => false,
+            'default'  => CAMUNDA_CONNECTOR_DEFAULT_RETRY_TIMEOUT
+        ],
+    ];
 
     /**
      * Initialize and run in endless loop
@@ -160,6 +181,31 @@ class CamundaConnector
     }
 
     /**
+     * Fetch and assign Camunda params
+     *
+     * @param object $externalTask
+     * @return array
+     */
+    protected function assignCamundaParams($externalTask): array
+    {
+        foreach ($this->incomingParams as $key => $param) {
+            // check isset param
+            if(!isset($externalTask->variables->{$param['name']})) {
+                // if param is required
+                if($param['required']) {
+                    $this->paramNotSet($param['name']); // error & exit
+                } else {
+                    $this->incomingParams[$key]['value'] = $this->incomingParams[$key]['default'];
+                }
+            } else {
+                $this->incomingParams[$key]['value'] = $externalTask->variables->{$param['name']}->value;
+            }
+        }
+
+        return $this->incomingParams;
+    }
+
+    /**
      * Topic Connector
      * Send task to Rabbit MQ
      *
@@ -168,15 +214,8 @@ class CamundaConnector
      */
     protected function handleTask_connector($externalTask): void
     {
-        // Fetch Camunda params
-        foreach ($this->incomingParams as $paramName) {
-            if(!isset($externalTask->variables->{$paramName})) { // check isset param
-                $this->paramNotSet($paramName); // error & exit
-            }
-        }
-
-        // Assign params
-        list($queue, $retries, $retryTimeout) = $this->incomingParams;
+        // Fetch and assign Camunda params
+        $this->assignCamundaParams($externalTask);
 
         // incoming message from rabbit mq
         $incomingMessageAsString = $externalTask->variables->message->value ?? json_encode(['data'=>'', 'headers'=>'']);
@@ -187,21 +226,21 @@ class CamundaConnector
             'camundaExternalTaskId'    => $externalTask->id,
             'camundaProcessInstanceId' => $externalTask->processInstanceId,
             'camundaWorkerId'          => $this->workerId,
-            'camundaRetries'           => $externalTask->retries ?? $retries,
-            'camundaRetryTimeout'      => $retryTimeout,
+            'camundaRetries'           => $externalTask->retries ?? $this->incomingParams['retries']['value'],
+            'camundaRetryTimeout'      => $this->incomingParams['retryTimeout']['value']
         ];
         $incomingMessage['headers'] = array_merge($incomingMessage['headers'], $camundaHeaders);
 
         // Open connection
-        $connection = new AMQPStreamConnection(RMQ_HOST, RMQ_PORT, RMQ_USER, RMQ_PASS, RMQ_VHOST, false, 'AMQPLAIN', null, 'en_US', 3.0, 3.0, null, true, 60);
+        $connection = new AMQPStreamConnection(RMQ_HOST, RMQ_PORT, RMQ_USER, RMQ_PASS, $this->incomingParams['vhost']['value'], false, 'AMQPLAIN', null, 'en_US', 3.0, 3.0, null, true, 60);
         $channel = $connection->channel();
         $channel->confirm_select(); // change channel mode
-        $channel->queue_declare($queue, false, true, false, false);
+        $channel->queue_declare($this->incomingParams['queue']['value'], false, true, false, false);
 
         // send message
         $message = json_encode($incomingMessage);
         $msg = new AMQPMessage($message, ['delivery_mode' => 2]);
-        $channel->basic_publish($msg, '', $queue);
+        $channel->basic_publish($msg, '', $this->incomingParams['queue']['value']);
 
         // for test
         // $channel->queue_declare(RMQ_QUEUE_ERR, false, true, false, false);
