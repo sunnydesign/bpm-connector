@@ -248,7 +248,7 @@ class CamundaConnector
         // Add `response_to` and `response_command`
         if(isset($this->incomingParams['response_to']['value'])) {
             $incomingMessage['headers']['response_to'] = $this->incomingParams['response_to']['value'];
-            if(isset($this->incomingParams['response_to']['value'])) {
+            if(isset($this->incomingParams['response_command']['value'])) {
                 $incomingMessage['headers']['response_command'] = $this->incomingParams['response_command']['value'];
             }
         }
@@ -257,7 +257,6 @@ class CamundaConnector
         $connection = new AMQPStreamConnection(RMQ_HOST, RMQ_PORT, RMQ_USER, RMQ_PASS, $this->incomingParams['vhost']['value'], false, 'AMQPLAIN', null, 'en_US', 3.0, 3.0, null, true, 60);
         $channel = $connection->channel();
         $channel->confirm_select(); // change channel mode
-        $channel->queue_declare($this->incomingParams['queue']['value'], false, true, false, false);
 
         // Send message
         $message = json_encode($incomingMessage);
@@ -265,7 +264,6 @@ class CamundaConnector
         $channel->basic_publish($msg, '', $this->incomingParams['queue']['value']);
 
         // For test
-        // $channel->queue_declare(RMQ_QUEUE_ERR, false, true, false, false);
         // $channel->basic_publish($msg, '', RMQ_QUEUE_ERR);
 
         // Close channel

@@ -126,7 +126,6 @@ $callback = function($msg) {
 $connection = new AMQPStreamConnection(RMQ_HOST, RMQ_PORT, RMQ_USER, RMQ_PASS, RMQ_VHOST, false, 'AMQPLAIN', null, 'en_US', 3.0, 3.0, null, true, 60);
 $channel = $connection->channel();
 $channel->confirm_select(); // change channel mode to confirm mode
-$channel->queue_declare(RMQ_QUEUE_OUT, false, true, false, false);
 $channel->basic_consume(RMQ_QUEUE_OUT, '', false, true, false, false, $callback);
 
 // Variate timeout for reboot worker in random time
