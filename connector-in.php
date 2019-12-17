@@ -49,7 +49,7 @@ class CamundaConnector
         [
             'name'     => 'queue',
             'required' => true,
-            'default'  => false
+            'default'  => null
         ],
         [
             'name'     => 'vhost',
@@ -66,6 +66,16 @@ class CamundaConnector
             'required' => false,
             'default'  => CAMUNDA_CONNECTOR_DEFAULT_RETRY_TIMEOUT
         ],
+        [
+            'name'     => 'response_to',
+            'required' => false,
+            'default'  => null
+        ],
+        [
+            'name'     => 'response_command',
+            'required' => false,
+            'default'  => null
+        ]
     ];
 
     /**
@@ -189,15 +199,19 @@ class CamundaConnector
     protected function assignCamundaParams($externalTask): array
     {
         foreach ($this->incomingParams as $key => $param) {
-            // check isset param
+            // Check isset param
             if(!isset($externalTask->variables->{$param['name']})) {
-                // if param is required
+                // If param is required
                 if($param['required']) {
                     $this->paramNotSet($param['name']); // error & exit
                 } else {
-                    $this->incomingParams[$key]['value'] = $this->incomingParams[$key]['default'];
+                    // If default not null
+                    if($this->incomingParams[$key]['default'] !== null) {
+                        $this->incomingParams[$key]['value'] = $this->incomingParams[$key]['default'];
+                    }
                 }
             } else {
+                // Assign param
                 $this->incomingParams[$key]['value'] = $externalTask->variables->{$param['name']}->value;
             }
         }
@@ -217,11 +231,11 @@ class CamundaConnector
         // Fetch and assign Camunda params
         $this->assignCamundaParams($externalTask);
 
-        // incoming message from rabbit mq
+        // Incoming message from rabbit mq
         $incomingMessageAsString = $externalTask->variables->message->value ?? json_encode(['data'=>'', 'headers'=>'']);
         $incomingMessage = json_decode($incomingMessageAsString, true);
 
-        // add external task id, process instance id, worker id in headers
+        // Add external task id, process instance id, worker id in headers
         $camundaHeaders = [
             'camundaExternalTaskId'    => $externalTask->id,
             'camundaProcessInstanceId' => $externalTask->processInstanceId,
@@ -231,22 +245,30 @@ class CamundaConnector
         ];
         $incomingMessage['headers'] = array_merge($incomingMessage['headers'], $camundaHeaders);
 
+        // Add `response_to` and `response_command`
+        if(isset($this->incomingParams['response_to']['value'])) {
+            $incomingMessage['headers']['response_to'] = $this->incomingParams['response_to']['value'];
+            if(isset($this->incomingParams['response_to']['value'])) {
+                $incomingMessage['headers']['response_command'] = $this->incomingParams['response_command']['value'];
+            }
+        }
+
         // Open connection
         $connection = new AMQPStreamConnection(RMQ_HOST, RMQ_PORT, RMQ_USER, RMQ_PASS, $this->incomingParams['vhost']['value'], false, 'AMQPLAIN', null, 'en_US', 3.0, 3.0, null, true, 60);
         $channel = $connection->channel();
         $channel->confirm_select(); // change channel mode
         $channel->queue_declare($this->incomingParams['queue']['value'], false, true, false, false);
 
-        // send message
+        // Send message
         $message = json_encode($incomingMessage);
         $msg = new AMQPMessage($message, ['delivery_mode' => 2]);
         $channel->basic_publish($msg, '', $this->incomingParams['queue']['value']);
 
-        // for test
+        // For test
         // $channel->queue_declare(RMQ_QUEUE_ERR, false, true, false, false);
         // $channel->basic_publish($msg, '', RMQ_QUEUE_ERR);
 
-        // close channel
+        // Close channel
         $channel->close();
         $connection->close();
     }
