@@ -63,6 +63,29 @@ function bad_work($externalTaskService, $message) {
 };
 
 /**
+ * Validate message
+ */
+function validate_message($message) {
+    // Headers
+    if(!isset($message['headers'])) {
+        $message = '`headers` not is set in incoming message';
+        Logger::log($message, 'output', RMQ_QUEUE_OUT,'bpm-connector-out', 1);
+        exit(1);
+    }
+
+    // Unsafe parameters in headers
+    $unsafeHeadersParams = ['camundaWorkerId', 'camundaExternalTaskId'];
+
+    foreach ($unsafeHeadersParams as $paramName) {
+        if(!isset($message['headers'][$paramName])) {
+            $message = '`' . $paramName . '` param not is set in incoming message';
+            Logger::log($message, 'output', RMQ_QUEUE_OUT,'bpm-connector-out', 1);
+            exit(1);
+        }
+    }
+}
+
+/**
  * Callback
  *
  * @param $msg
@@ -81,6 +104,9 @@ $callback = function($msg) {
 
     // Request to Camunda
     $externalTaskService = new ExternalTaskService(CAMUNDA_API_URL);
+
+    // Validate message
+    validate_message($message);
 
     // Сomplete task if his status is success
     // and retry it if is not succcess

@@ -44,6 +44,9 @@ class CamundaConnector
     /** @var ExternalTaskService */
     protected $externalTaskService;
 
+    /** @var array **/
+    protected $incomingParams = ['queue', 'retries', 'retryTimeout'];
+
     /**
      * Initialize and run in endless loop
      */
@@ -55,7 +58,7 @@ class CamundaConnector
         $this->workerId = 'worker' . getmypid();
         $this->externalTaskService = new ExternalTaskService($this->camundaUrl);
 
-        Logger::log('Waiting for task. To exit press CTRL+C', '-', '-','bpm-connector', 0);
+        Logger::log('Waiting for task. To exit press CTRL+C', '-', '-','bpm-connector-in', 0);
 
         while (true) {
             // Quit on Ctrl+C
@@ -72,7 +75,7 @@ class CamundaConnector
                     'input',
                     '-',
                     '-',
-                    'bpm-connector',
+                    'bpm-connector-in',
                     0
                 );
 
@@ -134,7 +137,7 @@ class CamundaConnector
      */
     protected function getOptions(): void
     {
-        $this->camundaUrl = CAMUNDA_API_URL;
+        $this->camundaUrl = sprintf(CAMUNDA_API_URL, CAMUNDA_API_LOGIN, CAMUNDA_API_PASS); // camunda api with basic auth
         $this->externalTaskTopic = CAMUNDA_CONNECTOR_TOPIC;
 
         $methodName = $this->topicNameToMethodName($this->externalTaskTopic);
@@ -142,6 +145,18 @@ class CamundaConnector
             fwrite(STDERR, "Error: Wrong value for --task-topic. Method $methodName does not exist.\n");
             exit(1);
         }
+    }
+
+    /**
+     * Error: param not set
+     *
+     * @param $paramName
+     */
+    protected function paramNotSet($paramName): void
+    {
+        $message = '`' . $paramName . '` param not set in connector';
+        Logger::log($message, 'input', '-','bpm-connector-in', 1);
+        exit(1);
     }
 
     /**
@@ -153,10 +168,15 @@ class CamundaConnector
      */
     protected function handleTask_connector($externalTask): void
     {
-        // Camunda parameters
-        $queue = $externalTask->variables->queue->value;
-        $retries = $externalTask->variables->retries->value;
-        $retryTimeout = $externalTask->variables->retryTimeout->value;
+        // Fetch Camunda params
+        foreach ($this->incomingParams as $paramName) {
+            if(!isset($externalTask->variables->{$paramName})) { // check isset param
+                $this->paramNotSet($paramName); // error & exit
+            }
+        }
+
+        // Assign params
+        list($queue, $retries, $retryTimeout) = $this->incomingParams;
 
         // incoming message from rabbit mq
         $incomingMessageAsString = $externalTask->variables->message->value ?? json_encode(['data'=>'', 'headers'=>'']);

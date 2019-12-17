@@ -19,7 +19,9 @@ Connector BPM-to-RabbitMQ-to-BPM for Camunda BPM on PHP. Using for transmitting 
 - supervisor
 
 ## Configuration constants
-- CAMUNDA_API_URL=https://bpm.kubia.dev/engine-rest
+- CAMUNDA_API_LOGIN=`<secret>`
+- CAMUNDA_API_PASS=`<secret>`
+- CAMUNDA_API_URL=https://%s:%s@bpm.kubia.dev/engine-rest
 - CAMUNDA_CONNECTOR_TOPIC=connector
 - CAMUNDA_CONNECTOR_LOCK_DURATION=36000000
 - RMQ_HOST=10.8.0.58
@@ -63,14 +65,14 @@ docker-compose up -d
 docker-compose down
 ```
 
-## BPM-to-RabbitMQ connector `connector.php`
+## BPM-to-RabbitMQ connector `connector-in.php`
 Connector is a external task in Camunda BPM, which listen task job for specified topic.
 When a task arrives, connector fetch and lock her on specified lock duration time.
 After that his redirects it to the specified queue in Rabbit MQ.
 
 _run microservice in command promt mode:_
 ```bash
-php connector.php
+php connector-in.php
 ```
 
 ## RabbitMQ-to-BPM connector `connector-out.php`
@@ -91,7 +93,7 @@ php consumer.php
 ```
 
 ## Run process in Camunda BPM
-To run process instance you must create POST request with valid payload as json.
+To run process instance you must create POST request with basic auth and valid payload as json.
 
 ```
 POST https://bpm.kubia.dev/engine-rest/process-definition/key/process-connector/start
