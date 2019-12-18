@@ -40,6 +40,4 @@ RUN useradd composer -b /home/composer \
 
 WORKDIR /opt/ms
 
-VOLUME ["/opt/ms/backups"]
-
 ENTRYPOINT /usr/bin/supervisord
