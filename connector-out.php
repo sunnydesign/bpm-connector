@@ -140,7 +140,8 @@ $callback = function($msg) {
     ];
 
     // Request to Camunda
-    $externalTaskService = new ExternalTaskService(CAMUNDA_API_URL);
+    $camundaUrl = sprintf(CAMUNDA_API_URL, CAMUNDA_API_LOGIN, CAMUNDA_API_PASS); // camunda api with basic auth
+    $externalTaskService = new ExternalTaskService($camundaUrl);
 
     // Validate message
     validate_message($message);
