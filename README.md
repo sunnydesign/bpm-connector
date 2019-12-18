@@ -24,6 +24,8 @@ Connector BPM-to-RabbitMQ-to-BPM for Camunda BPM on PHP. Using for transmitting 
 - CAMUNDA_API_URL=https://%s:%s@bpm.kubia.dev/engine-rest
 - CAMUNDA_CONNECTOR_TOPIC=connector
 - CAMUNDA_CONNECTOR_LOCK_DURATION=36000000
+- CAMUNDA_CONNECTOR_DEFAULT_RETRIES=0
+- CAMUNDA_CONNECTOR_DEFAULT_RETRY_TIMEOUT=1000
 - RMQ_HOST=10.8.0.58
 - RMQ_PORT=5672
 - RMQ_VHOST=quancy.com.sg
