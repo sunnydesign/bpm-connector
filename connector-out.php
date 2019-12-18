@@ -174,7 +174,7 @@ while(true) {
         $channel = $connection->channel();
         $channel->confirm_select(); // change channel mode to confirm mode
         $channel->basic_qos(0, 1, false); // one message in one loop
-        $channel->basic_consume(RMQ_QUEUE_OUT, '', false, true, false, false, $callback);
+        $channel->basic_consume(RMQ_QUEUE_OUT, '', false, false, false, false, $callback);
 
         while ($channel->is_consuming()) {
             $channel->wait(null, true, 0);
