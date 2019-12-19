@@ -46,32 +46,32 @@ class CamundaConnector
 
     /** @var array **/
     protected $incomingParams = [
-        [
+        'queue' => [
             'name'     => 'queue',
             'required' => true,
             'default'  => null
         ],
-        [
+        'vhost' => [
             'name'     => 'vhost',
             'required' => false,
             'default'  => RMQ_VHOST
         ],
-        [
+        'retries' => [
             'name'     => 'retries',
             'required' => false,
             'default'  => CAMUNDA_CONNECTOR_DEFAULT_RETRIES
         ],
-        [
+        'retryTimeout' => [
             'name'     => 'retryTimeout',
             'required' => false,
             'default'  => CAMUNDA_CONNECTOR_DEFAULT_RETRY_TIMEOUT
         ],
-        [
+        'response_to' => [
             'name'     => 'response_to',
             'required' => false,
             'default'  => null
         ],
-        [
+        'response_command' => [
             'name'     => 'response_command',
             'required' => false,
             'default'  => null
@@ -199,6 +199,7 @@ class CamundaConnector
     protected function assignCamundaParams($externalTask): array
     {
         foreach ($this->incomingParams as $key => $param) {
+
             // Check isset param
             if(!isset($externalTask->variables->{$param['name']})) {
                 // If param is required
@@ -215,6 +216,7 @@ class CamundaConnector
                 $this->incomingParams[$key]['value'] = $externalTask->variables->{$param['name']}->value;
             }
         }
+        print_r($this->incomingParams);
 
         return $this->incomingParams;
     }
