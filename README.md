@@ -99,7 +99,11 @@ _run microservice in command promt mode:_
 php consumer.php
 ```
 
-## Run process in Camunda BPM
+## Run process in Camunda BPM through bpm-initiator
+To run process instance you must install [BPM Initiator](https://gitlab.com/quancy-core/bpm-initiator.git) and use it.
+
+
+## Run process in Camunda BPM manually
 To run process instance you must create POST request with basic auth and valid payload as json.
 
 ```
