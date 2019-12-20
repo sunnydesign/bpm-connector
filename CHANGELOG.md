@@ -9,6 +9,13 @@ Using for transmitting variables from External Tasks to another external workers
 ### Planned
 - Nothing
 
+## [0.4] - 2019-12-20
+
+### Changed
+- Detailed logging
+- All ticks timeout moved to config
+- Format transit messages from Rabbit MQ changed from `String` to `Json`
+
 ## [0.3] - 2019-12-17
 
 ### Added
@@ -34,7 +41,8 @@ Using for transmitting variables from External Tasks to another external workers
 - Worker for test connector
 - README and CHANGELOG
 
-[unreleased]: https://gitlab.com/quancy-core/bpm-connector/-/tags/v0.3
+[unreleased]: https://gitlab.com/quancy-core/bpm-connector/-/tags/v0.4
+[0.4]: https://gitlab.com/quancy-core/bpm-connector/-/tags/v0.4
 [0.3]: https://gitlab.com/quancy-core/bpm-connector/-/tags/v0.3
 [0.2]: https://gitlab.com/quancy-core/bpm-connector/-/tags/v0.2
 [0.1]: https://gitlab.com/quancy-core/bpm-connector/-/tags/v0.1

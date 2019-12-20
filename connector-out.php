@@ -18,8 +18,6 @@ use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Exception\AMQPRuntimeException;
 use Quancy\Logger\Logger;
 
-const WAIT_BEFORE_RECONNECT_US = 1000;
-
 // Config
 $config = __DIR__ . '/config.php';
 $config_env = __DIR__ . '/config.env.php';
@@ -37,12 +35,22 @@ if (is_file($config)) {
  * @param $updateVariables
  */
 function good_work($externalTaskService, $message, $updateVariables) {
+    $headers = $message['headers'];
+
     $externalTaskRequest = (new ExternalTaskRequest())
         ->set('variables', $updateVariables)
-        ->set('workerId', $message['headers']['camundaWorkerId']);
+        ->set('workerId', $headers['camundaWorkerId']);
 
-    $externalTaskService->complete($message['headers']['camundaExternalTaskId'], $externalTaskRequest);
-    Logger::log(sprintf("Completed task <%s>", $message['headers']['camundaExternalTaskId']), 'input', RMQ_QUEUE_OUT,'bpm-connector-out', 0 );
+    $externalTaskService->complete($headers['camundaExternalTaskId'], $externalTaskRequest);
+
+    $logMessage = sprintf(
+        "Completed task <%s> of process <%s> process instance <%s> by worker <%s>",
+        $headers['camundaExternalTaskId'],
+        $headers['camundaProcessKey'],
+        $headers['camundaProcessInstanceId'],
+        $headers['camundaWorkerId']
+    );
+    Logger::log($logMessage, 'input', RMQ_QUEUE_OUT,'bpm-connector-out', 0 );
 };
 
 /**
@@ -52,17 +60,26 @@ function good_work($externalTaskService, $message, $updateVariables) {
  * @param $message
  */
 function bad_work($externalTaskService, $message) {
-    $retries = (int)$message['headers']['camundaRetries'] ?? 0;
-    $retryTimeout = (int)$message['headers']['camundaRetryTimeout'] ?? 0;
+    $headers = $message['headers'];
+    $retries = (int)$headers['camundaRetries'] ?? 0;
+    $retryTimeout = (int)$headers['camundaRetryTimeout'] ?? 0;
 
     $externalTaskRequest = (new ExternalTaskRequest())
         ->set('errorMessage', "Worker task fatal error")
         ->set('retries', $retries - 1)
         ->set('retryTimeout', $retryTimeout)
-        ->set('workerId', $message['headers']['camundaWorkerId']);
+        ->set('workerId', $headers['camundaWorkerId']);
 
-    $externalTaskService->handleFailure($message['headers']['camundaExternalTaskId'], $externalTaskRequest);
-    Logger::log(sprintf("Error in task <%s>", $message['headers']['camundaExternalTaskId']), 'input', RMQ_QUEUE_OUT,'bpm-connector-out', 0 );
+    $externalTaskService->handleFailure($headers['camundaExternalTaskId'], $externalTaskRequest);
+
+    $logMessage = sprintf(
+        "Error from task <%s> of process <%s> process instance <%s> by worker <%s>",
+        $headers['camundaExternalTaskId'],
+        $headers['camundaProcessKey'],
+        $headers['camundaProcessInstanceId'],
+        $headers['camundaWorkerId']
+    );
+    Logger::log($logMessage, 'input', RMQ_QUEUE_OUT,'bpm-connector-out', 0 );
 };
 
 /**
@@ -135,7 +152,7 @@ $callback = function($msg) {
     $updateVariables = [
         'message' => [
             'value' => $msg->body,
-            'type' => 'String'
+            'type' => 'Json'
         ]
     ];
 
@@ -169,7 +186,7 @@ while(true) {
         $connection = new AMQPStreamConnection(RMQ_HOST, RMQ_PORT, RMQ_USER, RMQ_PASS, RMQ_VHOST, false, 'AMQPLAIN', null, 'en_US', 3.0, 3.0, null, true, 60);
         register_shutdown_function('shutdown', $connection);
 
-        echo ' [*] Waiting for messages. To exit press CTRL+C', "\n";
+        Logger::log('Waiting for messages. To exit press CTRL+C', 'input', 'RMQ_QUEUE_OUT','bpm-connector-out', 0);
 
         // Your application code goes here.
         $channel = $connection->channel();
@@ -179,20 +196,20 @@ while(true) {
 
         while ($channel->is_consuming()) {
             $channel->wait(null, true, 0);
-            sleep(1);
+            usleep(RMQ_TICK_TIMEOUT);
         }
 
     } catch(AMQPRuntimeException $e) {
         echo $e->getMessage() . PHP_EOL;
         cleanup_connection($connection);
-        usleep(WAIT_BEFORE_RECONNECT_US);
+        usleep(RMQ_RECONNECT_TIMEOUT);
     } catch(\RuntimeException $e) {
         echo "Runtime exception " . PHP_EOL;
         cleanup_connection($connection);
-        usleep(WAIT_BEFORE_RECONNECT_US);
+        usleep(RMQ_RECONNECT_TIMEOUT);
     } catch(\ErrorException $e) {
         echo "Error exception " . PHP_EOL;
         cleanup_connection($connection);
-        usleep(WAIT_BEFORE_RECONNECT_US);
+        usleep(RMQ_RECONNECT_TIMEOUT);
     }
 }

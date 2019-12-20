@@ -34,6 +34,11 @@ Connector BPM-to-RabbitMQ-to-BPM for Camunda BPM on PHP. Using for transmitting 
 - RMQ_QUEUE_IN=bpm_in
 - RMQ_QUEUE_OUT=bpm_out
 
+## Input Parameters for connector from Camunda diagram
+- queue
+- retries
+- retryTimeout
+
 ## Preparing
 Download and install [Camunda Modeler](https://camunda.com/download/modeler/).
 
@@ -94,7 +99,11 @@ _run microservice in command promt mode:_
 php consumer.php
 ```
 
-## Run process in Camunda BPM
+## Run process in Camunda BPM through bpm-initiator
+To run process instance you must install [BPM Initiator](https://gitlab.com/quancy-core/bpm-initiator.git) and use it.
+
+
+## Run process in Camunda BPM manually
 To run process instance you must create POST request with basic auth and valid payload as json.
 
 ```
@@ -106,8 +115,24 @@ json payload
 {
   "variables": {
     "message": {
-      "value": "{\"data\":{\"user\":{\"first_name\":\"John\",\"last_name\":\"Doe\"},\"account\":{\"number\":\"702-0124511\"},\"date_start\":\"2019-09-14\",\"date_end\":\"2019-10-15\"},\"headers\":{\"command\":\"createTransactionsReport\"}}",
-      "type": "String"
+      "value": {
+        "data": {
+          "user": {
+            "first_name": "John",
+            "last_name": "Doe"
+          },
+          "account": {
+            "number": "702-0124511"
+          },
+          "date_start": "2019-09-14",
+          "date_end": "2019-10-15"
+        },
+        "headers": {
+          "command": "createTransactionsReport",
+          "camundaProcessKey": "process-connector"
+        }
+      },
+      "type": "Json"
     }
   }
 }
