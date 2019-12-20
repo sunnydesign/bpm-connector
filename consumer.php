@@ -4,7 +4,7 @@
 /**
  * Camunda Connector Consumer
  *
- * Worker for tests
+ * Worker for tests only!
  */
 
 sleep(1); // timeout for start through supervisor
@@ -56,7 +56,7 @@ $callback = function($msg) use ($connection) {
      * для ошибки установить success в false - задача фейлится
      */
     $outgoingMessage = $incomingMessage;
-    $outgoingMessage['headers']['success'] = false;
+    $outgoingMessage['headers']['success'] = true;
 
     $message = json_encode($outgoingMessage);
     $msg = new AMQPMessage($message, ['delivery_mode' => 2]);

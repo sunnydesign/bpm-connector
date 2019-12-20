@@ -95,16 +95,16 @@ class CamundaConnector
             // Quit on Ctrl+C
             pcntl_signal_dispatch();
             foreach ($this->fetchExternalTasks() as $externalTask) {
+                $logMessage = sprintf(
+                    "Fetched and locked from topic <%s> task <%s> of process <%s> process instance <%s>",
+                    $externalTask->topicName,
+                    $externalTask->id,
+                    $externalTask->processDefinitionKey,
+                    $externalTask->processInstanceId
+                );
                 Logger::log(
-                    sprintf(
-                        "Fetched and locked <%s> task <%s> of <%s> process instance <%s>",
-                        $externalTask->topicName,
-                        $externalTask->id,
-                        $externalTask->processDefinitionKey,
-                        $externalTask->processInstanceId
-                    ),
+                    $logMessage,
                     'input',
-                    '-',
                     '-',
                     'bpm-connector-in',
                     0
@@ -112,7 +112,7 @@ class CamundaConnector
 
                 call_user_func([$this, $this->topicNameToMethodName($externalTask->topicName)], $externalTask);
             }
-            usleep(1000000);
+            usleep(CAMUNDA_TICK_TIMEOUT);
         }
     }
 
@@ -183,10 +183,23 @@ class CamundaConnector
      *
      * @param $paramName
      */
-    protected function paramNotSet($paramName): void
+    protected function paramNotSet($paramName, $externalTask): void
     {
-        $message = '`' . $paramName . '` param not set in connector';
-        Logger::log($message, 'input', '-','bpm-connector-in', 1);
+        $logMessage = sprintf(
+            "`%s` param not set from topic <%s> task <%s> of process <%s> process instance <%s> ",
+            $paramName,
+            $externalTask->topicName,
+            $externalTask->id,
+            $externalTask->processDefinitionKey,
+            $externalTask->processInstanceId
+        );
+        Logger::log(
+            $logMessage,
+            'input',
+            '-',
+            'bpm-connector-in',
+            1
+        );
         exit(1);
     }
 
@@ -204,7 +217,7 @@ class CamundaConnector
             if(!isset($externalTask->variables->{$param['name']})) {
                 // If param is required
                 if($param['required']) {
-                    $this->paramNotSet($param['name']); // error & exit
+                    $this->paramNotSet($param['name'], $externalTask); // error & exit
                 } else {
                     // If default not null
                     if($this->incomingParams[$key]['default'] !== null) {
@@ -216,7 +229,6 @@ class CamundaConnector
                 $this->incomingParams[$key]['value'] = $externalTask->variables->{$param['name']}->value;
             }
         }
-        print_r($this->incomingParams);
 
         return $this->incomingParams;
     }
