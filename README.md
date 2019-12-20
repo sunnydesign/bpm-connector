@@ -34,6 +34,11 @@ Connector BPM-to-RabbitMQ-to-BPM for Camunda BPM on PHP. Using for transmitting 
 - RMQ_QUEUE_IN=bpm_in
 - RMQ_QUEUE_OUT=bpm_out
 
+## Input Parameters for connector from Camunda diagram
+- queue
+- retries
+- retryTimeout
+
 ## Preparing
 Download and install [Camunda Modeler](https://camunda.com/download/modeler/).
 
