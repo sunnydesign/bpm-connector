@@ -64,6 +64,8 @@ class Logger
      * Log
      *
      * @param mixed $message object, array, string or json string
+     * @param string $type type of queue
+     * @param string $queue queue name
      * @param string $owner
      * @param mixed $level (0 = 'info' | 1 = 'error' | 2 = 'success' | 3 = 'warning')
      * @return void
