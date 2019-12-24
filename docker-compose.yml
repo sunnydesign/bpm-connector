@@ -5,7 +5,7 @@ services:
     image: docker.quancy.com.sg/bpm-connector:${VERSION-latest}
     container_name: bpm1
     network_mode: bridge
-    restart: on-failure
+    restart: always
     env_file:
       - .env
 
@@ -14,6 +14,6 @@ services:
     image: docker.quancy.com.sg/bpm-connector:${VERSION-latest}
     container_name: bpm2
     network_mode: bridge
-    restart: on-failure
+    restart: always
     env_file:
       - .env

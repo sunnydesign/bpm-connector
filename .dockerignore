@@ -1,6 +1,10 @@
-**/.env
 **/.git
-**/.idea
 **/.gitignore
-**/Dockerfile
+**/deployment.secrets
+**/.env
+**/config.php
+**/.idea
+**/vendor
 **/README.md
+**/CHANGELOG.md
+**/composer.lock
