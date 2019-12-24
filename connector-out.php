@@ -186,7 +186,7 @@ while(true) {
         $connection = new AMQPStreamConnection(RMQ_HOST, RMQ_PORT, RMQ_USER, RMQ_PASS, RMQ_VHOST, false, 'AMQPLAIN', null, 'en_US', 3.0, 3.0, null, true, 60);
         register_shutdown_function('shutdown', $connection);
 
-        Logger::log('Waiting for messages. To exit press CTRL+C', 'input', 'RMQ_QUEUE_OUT','bpm-connector-out', 0);
+        Logger::log('Waiting for messages. To exit press CTRL+C', 'input', RMQ_QUEUE_OUT,'bpm-connector-out', 0);
 
         // Your application code goes here.
         $channel = $connection->channel();
