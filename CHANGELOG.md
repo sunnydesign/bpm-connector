@@ -9,11 +9,17 @@ Using for transmitting variables from External Tasks to another external workers
 ### Planned
 - Nothing
 
+## [1.1] - 2019-12-27
+
+### Changed
+- Added forwarding safe process variables in to `data.parameters`
+- Added cleaning process variables from the `data.parameters` in connector-out
+
 ## [1.0] - 2019-12-24
 
 ### Changed
 - Transfer Logger in composer satis repository
-- Changed .dockerignore
+- Changed `.dockerignore`
 
 ## [0.4] - 2019-12-20
 
@@ -47,7 +53,8 @@ Using for transmitting variables from External Tasks to another external workers
 - Worker for test connector
 - README and CHANGELOG
 
-[unreleased]: https://gitlab.com/quancy-core/bpm-connector/-/tags/1.0
+[unreleased]: https://gitlab.com/quancy-core/bpm-connector/-/tags/1.1
+[1.1]: https://gitlab.com/quancy-core/bpm-connector/-/tags/1.1
 [1.0]: https://gitlab.com/quancy-core/bpm-connector/-/tags/1.0
 [0.4]: https://gitlab.com/quancy-core/bpm-connector/-/tags/v0.4
 [0.3]: https://gitlab.com/quancy-core/bpm-connector/-/tags/v0.3

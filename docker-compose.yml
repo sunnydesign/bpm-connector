@@ -3,7 +3,7 @@ services:
   bpm-connector1:
     build: .
     image: docker.quancy.com.sg/bpm-connector:${VERSION-latest}
-    container_name: bpm1
+    container_name: bpm-connector1
     network_mode: bridge
     restart: always
     env_file:
@@ -12,7 +12,7 @@ services:
   bpm-connector2:
     build: .
     image: docker.quancy.com.sg/bpm-connector:${VERSION-latest}
-    container_name: bpm2
+    container_name: bpm-connector2
     network_mode: bridge
     restart: always
     env_file:

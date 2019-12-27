@@ -1,5 +1,5 @@
 {
-    "name": "bpm-connector/bpm-connector",
+    "name": "quancy/bpm-connector",
     "description": "Connector BPM-to-RabbitMQ-to-BPM for Camunda BPM",
     "keywords": ["connector", "bpm", "Camunda", "Rabbit MQ"],
     "license": "proprietary",

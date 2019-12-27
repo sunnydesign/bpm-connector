@@ -41,16 +41,36 @@ function good_work($externalTaskService, $message, $updateVariables) {
         ->set('variables', $updateVariables)
         ->set('workerId', $headers['camundaWorkerId']);
 
-    $externalTaskService->complete($headers['camundaExternalTaskId'], $externalTaskRequest);
+    $complete = $externalTaskService->complete($headers['camundaExternalTaskId'], $externalTaskRequest);
 
-    $logMessage = sprintf(
-        "Completed task <%s> of process <%s> process instance <%s> by worker <%s>",
-        $headers['camundaExternalTaskId'],
-        $headers['camundaProcessKey'],
-        $headers['camundaProcessInstanceId'],
-        $headers['camundaWorkerId']
-    );
-    Logger::log($logMessage, 'input', RMQ_QUEUE_OUT,'bpm-connector-out', 0 );
+    if($complete) {
+        $logMessage = sprintf(
+            "Completed task <%s> of process <%s> process instance <%s> by worker <%s>",
+            $headers['camundaExternalTaskId'],
+            $headers['camundaProcessKey'],
+            $headers['camundaProcessInstanceId'],
+            $headers['camundaWorkerId']
+        );
+        Logger::log($logMessage, 'input', RMQ_QUEUE_OUT,'bpm-connector-out', 0 );
+    } else {
+        // @todo: вывод ошибки если $externalTaskService->getResponseCode() не 204
+        print_r($externalTaskService->getResponseCode());
+        print_r(PHP_EOL);
+        print_r($externalTaskService);
+
+        //print_r($externalTaskService->getResponseContent());
+
+        /*
+        $logMessage = sprintf(
+            "Completed task <%s> of process <%s> process instance <%s> by worker <%s>",
+            $headers['camundaExternalTaskId'],
+            $headers['camundaProcessKey'],
+            $headers['camundaProcessInstanceId'],
+            $headers['camundaWorkerId']
+        );
+        Logger::log($logMessage, 'input', RMQ_QUEUE_OUT,'bpm-connector-out', 0 );
+        */
+    }
 };
 
 /**
@@ -169,6 +189,11 @@ $callback = function($msg) {
 
     if($success) {
         // GOOD WORK
+        // Clean parameters
+        if(isset($message['data']) && isset($message['data']['parameters'])) {
+            unset($message['headers']['parameters']);
+        }
+
         good_work($externalTaskService, $message, $updateVariables);
     } else {
         // BAD WORK

@@ -44,37 +44,45 @@ class CamundaConnector
     /** @var ExternalTaskService */
     protected $externalTaskService;
 
+    /** @var json string */
+    protected $incomingMessage;
+
     /** @var array **/
     protected $incomingParams = [
+        'command' => [
+            'name'      => 'command',
+            'required'  => true,
+            'default'   => null
+        ],
         'queue' => [
-            'name'     => 'queue',
-            'required' => true,
-            'default'  => null
+            'name'      => 'queue',
+            'required'  => true,
+            'default'   => null
         ],
         'vhost' => [
-            'name'     => 'vhost',
-            'required' => false,
-            'default'  => RMQ_VHOST
+            'name'      => 'vhost',
+            'required'  => false,
+            'default'   => RMQ_VHOST
         ],
         'retries' => [
-            'name'     => 'retries',
-            'required' => false,
-            'default'  => CAMUNDA_CONNECTOR_DEFAULT_RETRIES
+            'name'      => 'retries',
+            'required'  => false,
+            'default'   => CAMUNDA_CONNECTOR_DEFAULT_RETRIES
         ],
         'retryTimeout' => [
-            'name'     => 'retryTimeout',
-            'required' => false,
-            'default'  => CAMUNDA_CONNECTOR_DEFAULT_RETRY_TIMEOUT
+            'name'      => 'retryTimeout',
+            'required'  => false,
+            'default'   => CAMUNDA_CONNECTOR_DEFAULT_RETRY_TIMEOUT
         ],
         'response_to' => [
-            'name'     => 'response_to',
-            'required' => false,
-            'default'  => null
+            'name'      => 'response_to',
+            'required'  => false,
+            'default'   => null
         ],
         'response_command' => [
-            'name'     => 'response_command',
-            'required' => false,
-            'default'  => null
+            'name'      => 'response_command',
+            'required'  => false,
+            'default'   => null
         ]
     ];
 
@@ -195,7 +203,7 @@ class CamundaConnector
         );
         Logger::log(
             $logMessage,
-            'input',
+            '',
             '-',
             'bpm-connector-in',
             1
@@ -204,12 +212,27 @@ class CamundaConnector
     }
 
     /**
-     * Fetch and assign Camunda params
+     * If parameter is reserved:
+     * Belong to $this->incomingParams or if is `message`
+     *
+     * @param string $key
+     * @return bool
+     */
+    protected function paramIsReserved($key): bool
+    {
+        $isIncomingParam = array_key_exists($key, (array) $this->incomingParams);
+        $isMessage = $key === 'message';
+
+        return $isIncomingParam || $isMessage;
+    }
+
+    /**
+     * Fetch and assign Camunda Unsafe params
      *
      * @param object $externalTask
      * @return array
      */
-    protected function assignCamundaParams($externalTask): array
+    protected function assignCamundaUnsafeParams($externalTask): array
     {
         foreach ($this->incomingParams as $key => $param) {
 
@@ -234,21 +257,35 @@ class CamundaConnector
     }
 
     /**
-     * Topic Connector
-     * Send task to Rabbit MQ
+     * Fetch and assign Camunda Safe params
      *
      * @param object $externalTask
-     * @throws Exception
+     * @return array
      */
-    protected function handleTask_connector($externalTask): void
+    protected function assignCamundaSafeParams($externalTask): array
     {
-        // Fetch and assign Camunda params
-        $this->assignCamundaParams($externalTask);
+        // Add `data.parameters` if is not set
+        if(!isset($this->incomingMessage['data']['parameters'])) {
+            $this->incomingMessage['data']['parameters'] = [];
+        }
 
-        // Incoming message from rabbit mq
-        $incomingMessageAsString = $externalTask->variables->message->value ?? json_encode(['data'=>'', 'headers'=>'']);
-        $incomingMessage = json_decode($incomingMessageAsString, true);
+        // Set safe variables in `data.parameters`
+        foreach((array)$externalTask->variables as $key => $variable) {
+            // If parameter is not reserved
+            if(!$this->paramIsReserved($key)) {
+                $this->incomingMessage['data']['parameters'][$key] = $variable->value;
+            }
+        }
 
+        return $this->incomingMessage;
+    }
+
+    /**
+     * @param object $externalTask
+     * @return array
+     */
+    public function setHeadersFromIncomingParams($externalTask): array
+    {
         // Add external task id, process instance id, worker id in headers
         $camundaHeaders = [
             'camundaExternalTaskId'    => $externalTask->id,
@@ -257,15 +294,46 @@ class CamundaConnector
             'camundaRetries'           => $externalTask->retries ?? $this->incomingParams['retries']['value'],
             'camundaRetryTimeout'      => $this->incomingParams['retryTimeout']['value']
         ];
-        $incomingMessage['headers'] = array_merge($incomingMessage['headers'], $camundaHeaders);
+        $this->incomingMessage['headers'] = array_merge($this->incomingMessage['headers'], $camundaHeaders);
+
+        // Add `command`, `queue` and `vhost` in headers
+        $this->incomingMessage['headers']['command'] = $this->incomingParams['command']['value'];
+        $this->incomingMessage['headers']['queue'] = $this->incomingParams['queue']['value'];
+        $this->incomingMessage['headers']['vhost'] = $this->incomingParams['vhost']['value'];
 
         // Add `response_to` and `response_command`
         if(isset($this->incomingParams['response_to']['value'])) {
-            $incomingMessage['headers']['response_to'] = $this->incomingParams['response_to']['value'];
+            $this->incomingMessage['headers']['response_to'] = $this->incomingParams['response_to']['value'];
             if(isset($this->incomingParams['response_command']['value'])) {
-                $incomingMessage['headers']['response_command'] = $this->incomingParams['response_command']['value'];
+                $this->incomingMessage['headers']['response_command'] = $this->incomingParams['response_command']['value'];
             }
         }
+
+        // return headers only
+        return $this->incomingMessage['headers'];
+    }
+
+    /**
+     * Topic Connector
+     * Send task to Rabbit MQ
+     *
+     * @param object $externalTask
+     * @throws Exception
+     */
+    protected function handleTask_connector($externalTask): void
+    {
+        // Fetch and assign Camunda unsafe params
+        $this->assignCamundaUnsafeParams($externalTask);
+
+        // Incoming message from rabbit mq
+        $incomingMessageAsString = $externalTask->variables->message->value ?? json_encode(['data'=>'', 'headers'=>'']);
+        $this->incomingMessage = json_decode($incomingMessageAsString, true);
+
+        // Fetch headers params from incomingParams and put in message.headers
+        $this->setHeadersFromIncomingParams($externalTask);
+
+        // Fetch and assign Camunda safe params to message.data.parameters
+        $this->assignCamundaSafeParams($externalTask);
 
         // Open connection
         $connection = new AMQPStreamConnection(RMQ_HOST, RMQ_PORT, RMQ_USER, RMQ_PASS, $this->incomingParams['vhost']['value'], false, 'AMQPLAIN', null, 'en_US', 3.0, 3.0, null, true, 60);
@@ -273,7 +341,7 @@ class CamundaConnector
         $channel->confirm_select(); // change channel mode
 
         // Send message
-        $message = json_encode($incomingMessage);
+        $message = json_encode($this->incomingMessage);
         $msg = new AMQPMessage($message, ['delivery_mode' => 2]);
         $channel->basic_publish($msg, '', $this->incomingParams['queue']['value']);
 
