@@ -53,23 +53,25 @@ function good_work($externalTaskService, $message, $updateVariables) {
         );
         Logger::log($logMessage, 'input', RMQ_QUEUE_OUT,'bpm-connector-out', 0 );
     } else {
-        // @todo: вывод ошибки если $externalTaskService->getResponseCode() не 204
-        print_r($externalTaskService->getResponseCode());
-        print_r(PHP_EOL);
-        print_r($externalTaskService);
-
-        //print_r($externalTaskService->getResponseContent());
-
-        /*
+        // error if $externalTaskService->getResponseCode() not 204
+        $responseContent = (array) $externalTaskService->getResponseContents();
+        if(isset($responseContent["type"]) && isset($responseContent["message"])) {
+            $responseContentCombined = sprintf(
+                "type <%s> and message <%s>",
+                $responseContent["type"],
+                $responseContent["message"]
+            );
+        }
         $logMessage = sprintf(
-            "Completed task <%s> of process <%s> process instance <%s> by worker <%s>",
+            "Task <%s> of process <%s> process instance <%s> by worker <%s> not completed. Api return code <%s> with error %s",
             $headers['camundaExternalTaskId'],
             $headers['camundaProcessKey'],
             $headers['camundaProcessInstanceId'],
-            $headers['camundaWorkerId']
+            $headers['camundaWorkerId'],
+            $externalTaskService->getResponseCode(),
+            $responseContentCombined ?? ""
         );
-        Logger::log($logMessage, 'input', RMQ_QUEUE_OUT,'bpm-connector-out', 0 );
-        */
+        Logger::log($logMessage, 'input', RMQ_QUEUE_OUT,'bpm-connector-out', 1 );
     }
 };
 

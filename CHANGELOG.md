@@ -9,6 +9,11 @@ Using for transmitting variables from External Tasks to another external workers
 ### Planned
 - Nothing
 
+## [1.2] - 2020-01-05
+
+### Added
+- Added error output when task not completed just as api response code not `204`
+
 ## [1.1] - 2019-12-27
 
 ### Changed
@@ -53,7 +58,8 @@ Using for transmitting variables from External Tasks to another external workers
 - Worker for test connector
 - README and CHANGELOG
 
-[unreleased]: https://gitlab.com/quancy-core/bpm-connector/-/tags/1.1
+[unreleased]: https://gitlab.com/quancy-core/bpm-connector/-/tags/1.2
+[1.2]: https://gitlab.com/quancy-core/bpm-connector/-/tags/1.2
 [1.1]: https://gitlab.com/quancy-core/bpm-connector/-/tags/1.1
 [1.0]: https://gitlab.com/quancy-core/bpm-connector/-/tags/1.0
 [0.4]: https://gitlab.com/quancy-core/bpm-connector/-/tags/v0.4
