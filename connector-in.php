@@ -83,7 +83,12 @@ class CamundaConnector
             'name'      => 'response_command',
             'required'  => false,
             'default'   => null
-        ]
+        ],
+        'errorCode' => [
+            'name'      => 'errorCode',
+            'required'  => false,
+            'default'   => null
+        ],
     ];
 
     /**
@@ -294,6 +299,12 @@ class CamundaConnector
             'camundaRetries'           => $externalTask->retries ?? $this->incomingParams['retries']['value'],
             'camundaRetryTimeout'      => $this->incomingParams['retryTimeout']['value']
         ];
+
+        // Add `camundaErrorCode`
+        if(isset($this->incomingParams['errorCode']['value'])) {
+            $camundaHeaders['camundaErrorCode'] = $this->incomingParams['errorCode']['value'];
+        }
+
         $this->incomingMessage['headers'] = array_merge($this->incomingMessage['headers'], $camundaHeaders);
 
         // Add `command`, `queue` and `vhost` in headers

@@ -29,12 +29,13 @@ if (is_file($config)) {
 
 /**
  * Good work
+ * Complete task
  *
  * @param $externalTaskService
  * @param $message
  * @param $updateVariables
  */
-function good_work($externalTaskService, $message, $updateVariables) {
+function completeTask($externalTaskService, $message, $updateVariables) {
     $headers = $message['headers'];
 
     $externalTaskRequest = (new ExternalTaskRequest())
@@ -77,11 +78,42 @@ function good_work($externalTaskService, $message, $updateVariables) {
 
 /**
  * Bad work
+ * Error task
+ *
+ * @param $externalTaskService
+ * @param $message
+ * @param $updateVariables
+ * @param $errorMessage
+ * @param $errorCode
+ */
+function errorTask($externalTaskService, $message, $updateVariables, $errorMessage, $errorCode) {
+    $headers = $message['headers'];
+
+    $externalTaskRequest = (new ExternalTaskRequest())
+        ->set('variables', $updateVariables)
+        ->set('errorCode', $errorCode)
+        ->set('errorMessage', $errorMessage)
+        ->set('workerId', $headers['camundaWorkerId']);
+    $externalTaskService->handleError($headers['camundaExternalTaskId'], $externalTaskRequest);
+
+    $logMessage = sprintf(
+        "BPM Error from task <%s> of process <%s> process instance <%s> by worker <%s>",
+        $headers['camundaExternalTaskId'],
+        $headers['camundaProcessKey'],
+        $headers['camundaProcessInstanceId'],
+        $headers['camundaWorkerId']
+    );
+    Logger::log($logMessage, 'input', RMQ_QUEUE_OUT,'bpm-connector-out', 0 );
+};
+
+/**
+ * Fail work
+ * Fail task
  *
  * @param $externalTaskService
  * @param $message
  */
-function bad_work($externalTaskService, $message) {
+function failTask($externalTaskService, $message) {
     $headers = $message['headers'];
     $retries = (int)$headers['camundaRetries'] ?? 0;
     $retryTimeout = (int)$headers['camundaRetryTimeout'] ?? 0;
@@ -95,14 +127,14 @@ function bad_work($externalTaskService, $message) {
     $externalTaskService->handleFailure($headers['camundaExternalTaskId'], $externalTaskRequest);
 
     $logMessage = sprintf(
-        "Error from task <%s> of process <%s> process instance <%s> by worker <%s>",
+        "System error from task <%s> of process <%s> process instance <%s> by worker <%s>",
         $headers['camundaExternalTaskId'],
         $headers['camundaProcessKey'],
         $headers['camundaProcessInstanceId'],
         $headers['camundaWorkerId']
     );
     Logger::log($logMessage, 'input', RMQ_QUEUE_OUT,'bpm-connector-out', 0 );
-};
+}
 
 /**
  * Validate message
@@ -193,13 +225,27 @@ $callback = function($msg) {
         // GOOD WORK
         // Clean parameters
         if(isset($message['data']) && isset($message['data']['parameters'])) {
-            unset($message['headers']['parameters']);
+            unset($message['data']['parameters']);
         }
 
-        good_work($externalTaskService, $message, $updateVariables);
+        completeTask($externalTaskService, $message, $updateVariables);
     } else {
         // BAD WORK
-        bad_work($externalTaskService, $message);
+        $errorType = 'business';
+        $errorMessage = 'Unknown error';
+        $errorCode = $message['headers']['camundaErrorCode']; // @todo check it
+
+        if(isset($message['headers']['error'])) {
+            $errorType = $message['headers']['error']['errorType'] ?? 'business';
+            $errorMessage = $message['headers']['error']['errorMessage'] ?? 'Unknown error';
+        }
+
+        // Check errorType from headers
+        // if type is `system`
+        if($errorType === 'system')
+            failTask($externalTaskService, $message);
+        else
+            errorTask($externalTaskService, $message, $updateVariables, $errorMessage, $errorCode);
     }
 
 };
