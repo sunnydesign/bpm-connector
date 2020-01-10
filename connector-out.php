@@ -233,21 +233,36 @@ $callback = function($msg) {
         // BAD WORK
         $errorType = 'business';
         $errorMessage = 'Unknown error';
-        $errorCode = $message['headers']['camundaErrorCode']; // @todo check it
 
         if(isset($message['headers']['error'])) {
-            $errorType = $message['headers']['error']['errorType'] ?? 'business';
-            $errorMessage = $message['headers']['error']['errorMessage'] ?? 'Unknown error';
+            $errorType = $message['headers']['error']['type'] ?? $errorType;
+            $errorMessage = $message['headers']['error']['message'] ?? $errorMessage;
         }
 
-        // Check errorType from headers
-        // if type is `system`
-        if($errorType === 'system')
+        // Check error type from headers
+        if($errorType === 'system') {
+            // if type is `system`
+            // fail task
             failTask($externalTaskService, $message);
-        else
-            errorTask($externalTaskService, $message, $updateVariables, $errorMessage, $errorCode);
+        } else {
+            // if type is `business`
+            // error task
+            if(isset($message['headers']['camundaErrorCode'])) {
+                $errorCode = $message['headers']['camundaErrorCode'];
+                errorTask($externalTaskService, $message, $updateVariables, $errorMessage, $errorCode);
+            } else {
+                $logMessage = sprintf("`%s` not set", 'camundaErrorCode');
+                Logger::log(
+                    $logMessage,
+                    '',
+                    '-',
+                    'bpm-connector-out',
+                    1
+                );
+                exit(1);
+            }
+        }
     }
-
 };
 
 /**
