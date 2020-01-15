@@ -75,11 +75,12 @@ class CamundaConnectorOut
     /**
      * Get process variables
      *
-     * @param string $processInstanceId
      * @return bool
      */
-    public function getProcessVariables(string $processInstanceId): bool
+    public function getProcessVariables(): bool
     {
+        $processInstanceId = $this->headers['camundaProcessInstanceId'];
+
         // Get process variables request
         $getVariablesRequest = (new ProcessInstanceRequest())
             ->set('deserializeValues', false);
@@ -99,6 +100,27 @@ class CamundaConnectorOut
         } else {
             return true;
         }
+    }
+
+
+    /**
+     * Update process variables
+     */
+    public function updateProcessVariables(): void
+    {
+        // update rmq message in process variables
+        $this->updatedVariables = (array)$this->processVariables;
+
+        // update error counter in rmq message headers
+        if(isset($this->headers['camundaErrorCounter'])) {
+            $this->headers['camundaErrorCounter'] = $this->headers['camundaErrorCounter'] - 1;
+            $this->message['headers'] = $this->headers;
+        }
+
+        $this->updatedVariables['message'] = [
+            'value' => json_encode($this->message),
+            'type'  => 'Json'
+        ];
     }
 
     /**
@@ -203,6 +225,14 @@ class CamundaConnectorOut
         if($this->isSynchronousMode()) {
             $responseToSync = $this->getErrorResponseForSynchronousRequest($errorMessage);
             $this->sendSynchronousResponse($responseToSync);
+        }
+
+        // error counter decrement in process variables
+        if(isset($this->headers['camundaErrorCounter'])) {
+            $this->updatedVariables['errorCounter'] = [
+                'value' => $this->headers['camundaErrorCounter'],
+                'type'  => 'string'
+            ];
         }
 
         $externalTaskRequest = (new ExternalTaskRequest())
@@ -310,9 +340,9 @@ class CamundaConnectorOut
      * Get formatted success response
      * for synchronous request
      *
-     * @return array
+     * @return string
      */
-    public function getSuccessResponseForSynchronousRequest(): array
+    public function getSuccessResponseForSynchronousRequest(): string
     {
         $response = [
             'success' => true
@@ -347,9 +377,21 @@ class CamundaConnectorOut
      */
     public function removeParamsFromMessage(): void
     {
+        /*
+         * давай пока не будем их чистить,
+         * это по факту копия переменных процесса проходящих через очереди
         if(isset($this->message['data']) && isset($this->message['data']['parameters'])) {
             unset($this->message['data']['parameters']);
         }
+        */
+        if(isset($this->message['headers']) && isset($this->message['headers']['camundaErrorCounter'])) {
+            unset($this->message['headers']['camundaErrorCounter']);
+        }
+
+        $this->updatedVariables['message'] = [
+            'value' => json_encode($this->message),
+            'type'  => 'Json'
+        ];
     }
 
     /**
@@ -412,14 +454,10 @@ class CamundaConnectorOut
         $this->headers = $this->message['headers'] ?? null;
 
         // get process variables
-        $this->getProcessVariables($this->headers['camundaProcessInstanceId']);
+        $this->getProcessVariables();
 
-        // update rmq message in process variables
-        $this->updatedVariables = (array)$this->processVariables;
-        $this->updatedVariables['message'] = [
-            'value' => $msg->body,
-            'type' => 'Json'
-        ];
+        // update process variables
+        $this->updateProcessVariables();
 
         // Request to Camunda
         $externalTaskService = new ExternalTaskService($this->camundaUrl);

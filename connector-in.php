@@ -89,6 +89,11 @@ class CamundaConnectorIn
             'required'  => false,
             'default'   => null
         ],
+        'errorRetries' => [
+            'name'      => 'errorRetries',
+            'required'  => false,
+            'default'   => null
+        ],
     ];
 
     /**
@@ -187,7 +192,7 @@ class CamundaConnectorIn
         $methodName = $this->topicNameToMethodName($this->externalTaskTopic);
         if (!method_exists($this, $methodName)) {
             fwrite(STDERR, "Error: Wrong value for --task-topic. Method $methodName does not exist.\n");
-            exit(1);
+            //exit(1);
         }
     }
 
@@ -213,7 +218,7 @@ class CamundaConnectorIn
             'bpm-connector-in',
             1
         );
-        exit(1);
+        //exit(1);
     }
 
     /**
@@ -240,7 +245,6 @@ class CamundaConnectorIn
     protected function assignCamundaUnsafeParams($externalTask): array
     {
         foreach ($this->incomingParams as $key => $param) {
-
             // Check isset param
             if(!isset($externalTask->variables->{$param['name']})) {
                 // If param is required
@@ -286,11 +290,14 @@ class CamundaConnectorIn
     }
 
     /**
+     * Set Camunda params in headers
      * @param object $externalTask
      * @return array
      */
     public function setHeadersFromIncomingParams($externalTask): array
     {
+        // @todo:need refactoring
+
         // Add external task id, process instance id, worker id in headers
         $camundaHeaders = [
             'camundaExternalTaskId'    => $externalTask->id,
@@ -303,6 +310,14 @@ class CamundaConnectorIn
         // Add `camundaErrorCode`
         if(isset($this->incomingParams['errorCode']['value'])) {
             $camundaHeaders['camundaErrorCode'] = $this->incomingParams['errorCode']['value'];
+        }
+
+        // Add `camundaErrorCounter` if is not set
+        if(
+            isset($this->incomingParams['errorRetries']['value']) &&
+            !isset($this->incomingMessage['headers']['camundaErrorCounter'])
+        ) {
+            $camundaHeaders['camundaErrorCounter'] = $this->incomingParams['errorRetries']['value'];
         }
 
         $this->incomingMessage['headers'] = array_merge($this->incomingMessage['headers'], $camundaHeaders);
