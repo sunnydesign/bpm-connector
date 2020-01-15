@@ -56,6 +56,9 @@ class CamundaConnectorOut
     /** @var array */
     private $headers;
 
+    /** @var string */
+    private $requestErrorMessage = 'Request error';
+
     /** @var array Unsafe parameters in headers **/
     private $unsafeHeadersParams = [
         'camundaWorkerId',
@@ -72,10 +75,10 @@ class CamundaConnectorOut
     /**
      * Get process variables
      *
-     * @param $processInstanceId
+     * @param string $processInstanceId
      * @return bool
      */
-    function getProcessVariables($processInstanceId): bool
+    public function getProcessVariables(string $processInstanceId): bool
     {
         // Get process variables request
         $getVariablesRequest = (new ProcessInstanceRequest())
@@ -88,7 +91,7 @@ class CamundaConnectorOut
             $logMessage = sprintf(
                 "Process variables from process instance <%s> not received, because `%s`",
                 $processInstanceId,
-                $getVariablesService->getResponseContents()->message ?? 'Request error'
+                $getVariablesService->getResponseContents()->message ?? $this->requestErrorMessage
             );
             Logger::log($logMessage, 'input', RMQ_QUEUE_IN,'bpm-listener', 1 );
 
@@ -99,12 +102,9 @@ class CamundaConnectorOut
     }
 
     /**
-     * Good work
-     * Complete task
-     *
-     * @param $externalTaskService
+     * @param $externalTaskService ExternalTaskService
      */
-    function completeTask($externalTaskService): void
+    public function completeTask(ExternalTaskService $externalTaskService): void
     {
         $externalTaskRequest = (new ExternalTaskRequest())
             ->set('variables', $this->updatedVariables)
@@ -113,8 +113,11 @@ class CamundaConnectorOut
         $complete = $externalTaskService->complete($this->headers['camundaExternalTaskId'], $externalTaskRequest);
 
         if($complete) {
-            // response for synchronous queue
-            $response = 'OK';
+            // if is synchronous mode
+            if($this->isSynchronousMode()) {
+                $responseToSync = $this->getSuccessResponseForSynchronousRequest();
+                $this->sendSynchronousResponse($responseToSync);
+            }
 
             $logMessage = sprintf(
                 "Completed task <%s> of process <%s> process instance <%s> by worker <%s>",
@@ -125,11 +128,14 @@ class CamundaConnectorOut
             );
             Logger::log($logMessage, 'input', RMQ_QUEUE_OUT,'bpm-connector-out', 0 );
         } else {
-            // error if $externalTaskService->getResponseCode() not 204
-            $responseContent = (array)$externalTaskService->getResponseContents();
+            // if is synchronous mode
+            if($this->isSynchronousMode()) {
+                $responseToSync = $this->getErrorResponseForSynchronousRequest($this->requestErrorMessage);
+                $this->sendSynchronousResponse($responseToSync);
+            }
 
-            // response for synchronous queue
-            $response = $responseContent["type"];
+            // error if Camunda API response not 204
+            $responseContent = (array)$externalTaskService->getResponseContents();
 
             if(isset($responseContent["type"]) && isset($responseContent["message"])) {
                 $responseContentCombined = sprintf(
@@ -149,33 +155,24 @@ class CamundaConnectorOut
             );
             Logger::log($logMessage, 'input', RMQ_QUEUE_OUT,'bpm-connector-out', 1 );
         }
-
-        // if is synchronous mode
-        if($this->isSynchronousMode()) {
-            $this->sendSynchronousResponse($response);
-        }
     }
 
     /**
-     * @param $externalTaskService
-     * @param $error
+     * Uncomplete task
+     * If catch business or system error
+     *
+     * @param ExternalTaskService $externalTaskService
+     * @param array $error
      */
-    public function uncompleteTask($externalTaskService, $error): void
+    public function uncompleteTask(ExternalTaskService $externalTaskService, array $error): void
     {
         // Check error type from headers
         if($error['type'] === 'system') {
-            // if type is `system`
-            // fail task
+            // fail task if type is `system`
             $this->failTask($externalTaskService);
         } else {
-            // if type is `business`
-            // error task
+            // error task if type is `business`
             if(isset($this->headers['camundaErrorCode'])) {
-                // if is synchronous mode
-                if($this->isSynchronousMode()) {
-                    $this->sendSynchronousResponse($error['message']);
-                }
-
                 $errorCode = $this->headers['camundaErrorCode'];
                 $this->errorTask($externalTaskService, $error['message'], $errorCode);
             } else {
@@ -187,7 +184,7 @@ class CamundaConnectorOut
                     'bpm-connector-out',
                     1
                 );
-                exit(1);
+                //exit(1);
             }
         }
     }
@@ -196,12 +193,18 @@ class CamundaConnectorOut
      * Bad work
      * Error task (business error)
      *
-     * @param $externalTaskService
-     * @param $errorMessage
-     * @param $errorCode
+     * @param ExternalTaskService $externalTaskService
+     * @param string $errorMessage
+     * @param string $errorCode
      */
-    function errorTask($externalTaskService, $errorMessage, $errorCode): void
+    public function errorTask(ExternalTaskService $externalTaskService, string $errorMessage, string $errorCode): void
     {
+        // if is synchronous mode
+        if($this->isSynchronousMode()) {
+            $responseToSync = $this->getErrorResponseForSynchronousRequest($errorMessage);
+            $this->sendSynchronousResponse($responseToSync);
+        }
+
         $externalTaskRequest = (new ExternalTaskRequest())
             ->set('variables', $this->updatedVariables)
             ->set('errorCode', $errorCode)
@@ -223,23 +226,24 @@ class CamundaConnectorOut
      * Bad work
      * Fail task (system error)
      *
-     * @param $externalTaskService
+     * @param ExternalTaskService $externalTaskService
      */
-    function failTask($externalTaskService): void
+    public function failTask(ExternalTaskService $externalTaskService): void
     {
-        $retries = (int)$this->headers['camundaRetries'] ?? 0;
+        $retries = (int)$this->headers['camundaRetries'] ?? 1;
+        $retriesRemaining = $retries - 1;
         $retryTimeout = (int)$this->headers['camundaRetryTimeout'] ?? 0;
 
-        $response = 'Worker task fatal error';
         $externalTaskRequest = (new ExternalTaskRequest())
-            ->set('errorMessage', $response)
-            ->set('retries', $retries - 1)
+            ->set('errorMessage', $this->requestErrorMessage)
+            ->set('retries', $retriesRemaining)
             ->set('retryTimeout', $retryTimeout)
             ->set('workerId', $this->headers['camundaWorkerId']);
 
         // if is synchronous mode
-        if($this->isSynchronousMode() && $retries - 1 === 0) {
-            $this->sendSynchronousResponse($response);
+        if($this->isSynchronousMode() && $retriesRemaining === 0) {
+            $responseToSync = $this->getErrorResponseForSynchronousRequest($this->requestErrorMessage);
+            $this->sendSynchronousResponse($responseToSync);
         }
 
         $externalTaskService->handleFailure($this->headers['camundaExternalTaskId'], $externalTaskRequest);
@@ -257,13 +261,13 @@ class CamundaConnectorOut
     /**
      * Validate message
      */
-    function validate_message(): void
+    public function validate_message(): void
     {
         // Headers
         if(!$this->headers) {
             $logMessage = '`headers` not is set in incoming message';
             Logger::log($logMessage, 'output', RMQ_QUEUE_OUT,'bpm-connector-out', 1);
-            exit(1);
+            //exit(1);
         }
 
         // Unsafe params
@@ -271,7 +275,7 @@ class CamundaConnectorOut
             if(!isset($this->headers[$paramName])) {
                 $logMessage = '`' . $paramName . '` param not is set in incoming message';
                 Logger::log($logMessage, 'output', RMQ_QUEUE_OUT,'bpm-connector-out', 1);
-                exit(1);
+                //exit(1);
             }
         }
     }
@@ -281,7 +285,7 @@ class CamundaConnectorOut
      *
      * @return bool
      */
-    function isSynchronousMode(): bool
+    public function isSynchronousMode(): bool
     {
         return
             property_exists($this->processVariables,'rabbitCorrelationId') &&
@@ -291,9 +295,9 @@ class CamundaConnectorOut
     /**
      * Send synchronous response
      *
-     * @param $response
+     * @param string $response
      */
-    function sendSynchronousResponse($response): void
+    public function sendSynchronousResponse(string $response): void
     {
         $correlation_id = $this->processVariables->rabbitCorrelationId->value;
         $reply_to = $this->processVariables->rabbitCorrelationReplyTo->value;
@@ -303,9 +307,45 @@ class CamundaConnectorOut
     }
 
     /**
+     * Get formatted success response
+     * for synchronous request
+     *
+     * @return array
+     */
+    public function getSuccessResponseForSynchronousRequest(): array
+    {
+        $response = [
+            'success' => true
+        ];
+
+        return json_encode($response);
+    }
+
+    /**
+     * Get formatted error response
+     * for synchronous request
+     *
+     * @param string $message
+     * @return string
+     */
+    public function getErrorResponseForSynchronousRequest(string $message): string
+    {
+        $response = [
+            'success' => false,
+            'error'   => [
+                [
+                    'message' => $message
+                ]
+            ]
+        ];
+
+        return json_encode($response);
+    }
+
+    /**
      * Clean parameters from message
      */
-    function removeParamsFromMessage(): void
+    public function removeParamsFromMessage(): void
     {
         if(isset($this->message['data']) && isset($this->message['data']['parameters'])) {
             unset($this->message['data']['parameters']);
@@ -314,6 +354,7 @@ class CamundaConnectorOut
 
     /**
      * Get Error type and error message from headers
+     *
      * @return array
      */
     public function getErrorFromHeaders(): array
@@ -334,7 +375,7 @@ class CamundaConnectorOut
     /**
      * Close connection
      */
-    function cleanup_connection(): void
+    public function cleanup_connection(): void
     {
         // Connection might already be closed.
         // Ignoring exceptions.
@@ -349,7 +390,7 @@ class CamundaConnectorOut
     /**
      * Shutdown
      */
-    function shutdown(): void
+    public function shutdown(): void
     {
         $this->connection->close();
     }
@@ -357,13 +398,13 @@ class CamundaConnectorOut
     /**
      * Callback
      *
-     * @param $msg
+     * @param AMQPMessage $msg
      */
-    function callback($msg) {
+    public function callback(AMQPMessage $msg): void
+    {
         Logger::log(sprintf("Received %s", $msg->body), 'input', RMQ_QUEUE_OUT,'bpm-connector-out', 0 );
 
         // Set manual acknowledge for received message
-        //$msg->delivery_info['channel']->basic_ack($msg->delivery_info['delivery_tag']); // manual confirm delivery message
         $this->channel->basic_ack($msg->delivery_info['delivery_tag']); // manual confirm delivery message
 
         // Update variables
