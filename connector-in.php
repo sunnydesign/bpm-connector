@@ -27,7 +27,7 @@ if (is_file($config)) {
     require_once $config_env;
 }
 
-class CamundaConnector
+class CamundaConnectorIn
 {
     /** @var string */
     protected $camundaUrl;
@@ -41,7 +41,7 @@ class CamundaConnector
     /** @var string */
     protected $workerId;
 
-    /** @var ExternalTaskService */
+    /** @var Camunda\Service\ExternalTaskService */
     protected $externalTaskService;
 
     /** @var json string */
@@ -366,5 +366,5 @@ class CamundaConnector
 
 }
 
-$worker = new CamundaConnector();
+$worker = new CamundaConnectorIn();
 $worker->run();
