@@ -25,7 +25,8 @@
     },
     "autoload": {
         "psr-4": {
-            "Quancy\\Logger\\": "src/Quancy/Logger"
+            "Quancy\\Logger\\": "src/Quancy/Logger",
+            "Kubia\\": "src/Kubia"
         }
     }
 }

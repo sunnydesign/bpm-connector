@@ -16,4 +16,5 @@ define('RMQ_PASS', getenv('RMQ_PASS'));
 define('RMQ_QUEUE_IN', getenv('RMQ_QUEUE_IN'));
 define('RMQ_QUEUE_OUT', getenv('RMQ_QUEUE_OUT'));
 define('RMQ_QUEUE_ERR', getenv('RMQ_QUEUE_ERR'));
+define('RMQ_RECONNECT_TIMEOUT', getenv('RMQ_RECONNECT_TIMEOUT'));
 define('RMQ_TICK_TIMEOUT', getenv('RMQ_TICK_TIMEOUT'));
