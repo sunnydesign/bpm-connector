@@ -55,10 +55,8 @@ class CamundaConnectorOut extends CamundaBaseConnector
 
         if($complete) {
             // if is synchronous mode
-            if($this->isSynchronousMode()) {
-                $responseToSync = $this->getSuccessResponseForSynchronousRequest();
-                $this->sendSynchronousResponse($responseToSync, true);
-            }
+            if($this->isSynchronousMode())
+                $this->sendSynchronousResponse($this->msg, true);
 
             $logMessage = sprintf(
                 "Completed task <%s> of process <%s> process instance <%s> by worker <%s>",
@@ -70,10 +68,8 @@ class CamundaConnectorOut extends CamundaBaseConnector
             Logger::log($logMessage, 'input', RMQ_QUEUE_OUT, $this->logOwner, 0 );
         } else {
             // if is synchronous mode
-            if($this->isSynchronousMode()) {
-                $responseToSync = $this->getErrorResponseForSynchronousRequest($this->requestErrorMessage);
-                $this->sendSynchronousResponse($responseToSync, false);
-            }
+            if($this->isSynchronousMode())
+                $this->sendSynchronousResponse($this->msg, false);
 
             // error if Camunda API response not 204
             $responseContent = (array)$externalTaskService->getResponseContents();
@@ -141,10 +137,8 @@ class CamundaConnectorOut extends CamundaBaseConnector
     public function errorTask(ExternalTaskService $externalTaskService, string $errorMessage, string $errorCode): void
     {
         // if is synchronous mode
-        if($this->isSynchronousMode()) {
-            $responseToSync = $this->getErrorResponseForSynchronousRequest($errorMessage);
-            $this->sendSynchronousResponse($responseToSync, false);
-        }
+        if($this->isSynchronousMode())
+            $this->sendSynchronousResponse($this->msg, false);
 
         // error counter decrement in process variables
         if(isset($this->headers['camundaErrorCounter'])) {
@@ -190,10 +184,8 @@ class CamundaConnectorOut extends CamundaBaseConnector
             ->set('workerId', $this->headers['camundaWorkerId']);
 
         // if is synchronous mode
-        if($this->isSynchronousMode() && $retriesRemaining === 0) {
-            $responseToSync = $this->getErrorResponseForSynchronousRequest($this->requestErrorMessage);
-            $this->sendSynchronousResponse($responseToSync, false);
-        }
+        if($this->isSynchronousMode() && $retriesRemaining === 0)
+            $this->sendSynchronousResponse($this->msg, false);
 
         $externalTaskService->handleFailure($this->headers['camundaExternalTaskId'], $externalTaskRequest);
 
