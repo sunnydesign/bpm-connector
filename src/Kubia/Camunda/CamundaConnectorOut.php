@@ -5,7 +5,7 @@ namespace Kubia\Camunda;
 use Camunda\Entity\Request\ExternalTaskRequest;
 use Camunda\Service\ExternalTaskService;
 use PhpAmqpLib\Message\AMQPMessage;
-use Quancy\Logger\Logger;
+use Kubia\Logger\Logger;
 
 /**
  * Class CamundaConnectorOut
@@ -20,8 +20,7 @@ class CamundaConnectorOut extends CamundaBaseConnector
     ];
 
     /** @var string */
-    public $logOwner = 'bpm-listener';
-
+    public $logOwner = 'bpm-connector-out';
 
     /**
      * Update process variables
@@ -58,7 +57,7 @@ class CamundaConnectorOut extends CamundaBaseConnector
             // if is synchronous mode
             if($this->isSynchronousMode()) {
                 $responseToSync = $this->getSuccessResponseForSynchronousRequest();
-                $this->sendSynchronousResponse($responseToSync);
+                $this->sendSynchronousResponse($responseToSync, true);
             }
 
             $logMessage = sprintf(
@@ -68,12 +67,12 @@ class CamundaConnectorOut extends CamundaBaseConnector
                 $this->headers['camundaProcessInstanceId'],
                 $this->headers['camundaWorkerId']
             );
-            Logger::log($logMessage, 'input', RMQ_QUEUE_OUT,'bpm-connector-out', 0 );
+            Logger::log($logMessage, 'input', RMQ_QUEUE_OUT, $this->logOwner, 0 );
         } else {
             // if is synchronous mode
             if($this->isSynchronousMode()) {
                 $responseToSync = $this->getErrorResponseForSynchronousRequest($this->requestErrorMessage);
-                $this->sendSynchronousResponse($responseToSync);
+                $this->sendSynchronousResponse($responseToSync, false);
             }
 
             // error if Camunda API response not 204
@@ -95,7 +94,7 @@ class CamundaConnectorOut extends CamundaBaseConnector
                 $externalTaskService->getResponseCode(),
                 $responseContentCombined ?? ""
             );
-            Logger::log($logMessage, 'input', RMQ_QUEUE_OUT,'bpm-connector-out', 1 );
+            Logger::log($logMessage, 'input', RMQ_QUEUE_OUT, $this->logOwner, 1 );
         }
     }
 
@@ -123,7 +122,7 @@ class CamundaConnectorOut extends CamundaBaseConnector
                     $logMessage,
                     '',
                     '-',
-                    'bpm-connector-out',
+                    $this->logOwner,
                     1
                 );
                 //exit(1);
@@ -144,7 +143,7 @@ class CamundaConnectorOut extends CamundaBaseConnector
         // if is synchronous mode
         if($this->isSynchronousMode()) {
             $responseToSync = $this->getErrorResponseForSynchronousRequest($errorMessage);
-            $this->sendSynchronousResponse($responseToSync);
+            $this->sendSynchronousResponse($responseToSync, false);
         }
 
         // error counter decrement in process variables
@@ -169,7 +168,7 @@ class CamundaConnectorOut extends CamundaBaseConnector
             $this->headers['camundaProcessInstanceId'],
             $this->headers['camundaWorkerId']
         );
-        Logger::log($logMessage, 'input', RMQ_QUEUE_OUT,'bpm-connector-out', 0 );
+        Logger::log($logMessage, 'input', RMQ_QUEUE_OUT, $this->logOwner, 0 );
     }
 
     /**
@@ -193,7 +192,7 @@ class CamundaConnectorOut extends CamundaBaseConnector
         // if is synchronous mode
         if($this->isSynchronousMode() && $retriesRemaining === 0) {
             $responseToSync = $this->getErrorResponseForSynchronousRequest($this->requestErrorMessage);
-            $this->sendSynchronousResponse($responseToSync);
+            $this->sendSynchronousResponse($responseToSync, false);
         }
 
         $externalTaskService->handleFailure($this->headers['camundaExternalTaskId'], $externalTaskRequest);
@@ -205,7 +204,7 @@ class CamundaConnectorOut extends CamundaBaseConnector
             $this->headers['camundaProcessInstanceId'],
             $this->headers['camundaWorkerId']
         );
-        Logger::log($logMessage, 'input', RMQ_QUEUE_OUT,'bpm-connector-out', 0 );
+        Logger::log($logMessage, 'input', RMQ_QUEUE_OUT, $this->logOwner, 0 );
     }
 
     /**
@@ -223,15 +222,21 @@ class CamundaConnectorOut extends CamundaBaseConnector
     /**
      * Send synchronous response
      *
-     * @param string $response
+     * @param AMQPMessage $msg
+     * @param bool $isTrue
      */
-    public function sendSynchronousResponse(string $response): void
+    public function sendSynchronousResponse(AMQPMessage $msg, bool $isTrue = false): void
     {
+        if($isTrue)
+            $responseToSync = $this->getSuccessResponseForSynchronousRequest();
+        else
+            $responseToSync = $this->getErrorResponseForSynchronousRequest($this->requestErrorMessage);
+
         $correlation_id = $this->processVariables->rabbitCorrelationId->value;
         $reply_to = $this->processVariables->rabbitCorrelationReplyTo->value;
 
-        $msg = new AMQPMessage($response, ['correlation_id' => $correlation_id]);
-        $this->channel->basic_publish($msg, '', $reply_to);
+        $sync_msg = new AMQPMessage($responseToSync, ['correlation_id' => $correlation_id]);
+        $this->channel->basic_publish($sync_msg, '', $reply_to);
     }
 
     /**

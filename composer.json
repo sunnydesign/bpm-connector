@@ -1,5 +1,5 @@
 {
-    "name": "quancy/bpm-connector",
+    "name": "kubia/bpm-connector",
     "description": "Connector BPM-to-RabbitMQ-to-BPM for Camunda BPM",
     "keywords": ["connector", "bpm", "Camunda", "Rabbit MQ"],
     "license": "proprietary",
@@ -17,15 +17,10 @@
         }
     ],
     "require": {
-        "php": ">=7.1.0",
-        "ext-pcntl": "*",
-        "endpot/camunda-rest-client": "^1.1",
-        "php-amqplib/php-amqplib": "2.11.0",
-        "quancy/logger": "0.1"
+        "kubia/camunda": "0.1"
     },
     "autoload": {
         "psr-4": {
-            "Quancy\\Logger\\": "src/Quancy/Logger",
             "Kubia\\": "src/Kubia"
         }
     }

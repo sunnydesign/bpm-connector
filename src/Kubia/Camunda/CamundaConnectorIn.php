@@ -6,7 +6,7 @@ use Camunda\Entity\Request\ExternalTaskRequest;
 use Camunda\Service\ExternalTaskService;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Message\AMQPMessage;
-use Quancy\Logger\Logger;
+use Kubia\Logger\Logger;
 use Exception;
 
 /**
