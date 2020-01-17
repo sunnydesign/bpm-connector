@@ -283,6 +283,8 @@ class CamundaConnectorOut extends CamundaBaseConnector
         // Set manual acknowledge for received message
         $this->channel->basic_ack($msg->delivery_info['delivery_tag']); // manual confirm delivery message
 
+        $this->msg = $msg;
+
         // Update variables
         $this->message = json_decode($msg->body, true);
         $this->headers = $this->message['headers'] ?? null;
