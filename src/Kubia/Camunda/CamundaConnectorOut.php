@@ -137,8 +137,10 @@ class CamundaConnectorOut extends CamundaBaseConnector
     public function errorTask(ExternalTaskService $externalTaskService, string $errorMessage, string $errorCode): void
     {
         // if is synchronous mode
-        if($this->isSynchronousMode())
+        if($this->isSynchronousMode()) {
+            $this->requestErrorMessage = $errorMessage;
             $this->sendSynchronousResponse($this->msg, false);
+        }
 
         // error counter decrement in process variables
         if(isset($this->headers['camundaErrorCounter'])) {
@@ -279,6 +281,8 @@ class CamundaConnectorOut extends CamundaBaseConnector
     public function callback(AMQPMessage $msg): void
     {
         Logger::log(sprintf("Received %s", $msg->body), 'input', $this->rmqConfig['queue'], $this->logOwner, 0 );
+
+        $this->requestErrorMessage = 'Request error';
 
         // Set manual acknowledge for received message
         $this->channel->basic_ack($msg->delivery_info['delivery_tag']); // manual confirm delivery message
