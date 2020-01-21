@@ -136,12 +136,6 @@ class CamundaConnectorOut extends CamundaBaseConnector
      */
     public function errorTask(ExternalTaskService $externalTaskService, string $errorMessage, string $errorCode): void
     {
-        // if is synchronous mode
-        if($this->isSynchronousMode()) {
-            $this->requestErrorMessage = $errorMessage;
-            $this->sendSynchronousResponse($this->msg, false);
-        }
-
         // error counter decrement in process variables
         if(isset($this->headers['camundaErrorCounter'])) {
             $this->updatedVariables['errorCounter'] = [
@@ -156,6 +150,12 @@ class CamundaConnectorOut extends CamundaBaseConnector
             ->set('errorMessage', $errorMessage)
             ->set('workerId', $this->headers['camundaWorkerId']);
         $externalTaskService->handleError($this->headers['camundaExternalTaskId'], $externalTaskRequest);
+
+        // if is synchronous mode
+        if($this->isSynchronousMode()) {
+            $this->requestErrorMessage = $errorMessage;
+            $this->sendSynchronousResponse($this->msg, false);
+        }
 
         $logMessage = sprintf(
             "BPM Error from task <%s> of process <%s> process instance <%s> by worker <%s>",
