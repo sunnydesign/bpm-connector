@@ -56,7 +56,7 @@ class CamundaConnectorOut extends CamundaBaseConnector
         if($complete) {
             // if is synchronous mode
             if($this->isSynchronousMode())
-                $this->sendSynchronousResponse($this->msg, true);
+                $this->sendSynchronousResponse($this->msg, true, $this->headers['camundaProcessInstanceId']);
 
             $logMessage = sprintf(
                 "Completed task <%s> of process <%s> process instance <%s> by worker <%s>",
@@ -217,12 +217,13 @@ class CamundaConnectorOut extends CamundaBaseConnector
      * Send synchronous response
      *
      * @param AMQPMessage $msg
-     * @param bool $isTrue
+     * @param bool $success
+     * @param string $processInstanceId
      */
-    public function sendSynchronousResponse(AMQPMessage $msg, bool $isTrue = false): void
+    public function sendSynchronousResponse(AMQPMessage $msg, bool $success = false, $processInstanceId= null): void
     {
-        if($isTrue)
-            $responseToSync = $this->getSuccessResponseForSynchronousRequest();
+        if($success)
+            $responseToSync = $this->getSuccessResponseForSynchronousRequest($processInstanceId);
         else
             $responseToSync = $this->getErrorResponseForSynchronousRequest($this->requestErrorMessage);
 
