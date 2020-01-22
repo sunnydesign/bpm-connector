@@ -17,7 +17,7 @@
         }
     ],
     "require": {
-        "kubia/camunda": "0.1"
+        "kubia/camunda": "0.2"
     },
     "autoload": {
         "psr-4": {
