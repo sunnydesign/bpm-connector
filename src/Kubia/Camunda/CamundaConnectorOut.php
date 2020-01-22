@@ -220,7 +220,7 @@ class CamundaConnectorOut extends CamundaBaseConnector
      * @param bool $success
      * @param string $processInstanceId
      */
-    public function sendSynchronousResponse(AMQPMessage $msg, bool $success = false, $processInstanceId= null): void
+    public function sendSynchronousResponse(AMQPMessage $msg, bool $success = false, string $processInstanceId = null): void
     {
         if($success)
             $responseToSync = $this->getSuccessResponseForSynchronousRequest($processInstanceId);
