@@ -105,6 +105,7 @@ class CamundaConnectorIn
         $this->incomingParams['vhost']['default'] = $this->rmqConfig['vhost'];
         $this->incomingParams['retries']['default'] = $this->camundaConfig['retries'];
         $this->incomingParams['retryTimeout']['default'] = $this->camundaConfig['retryTimeout'];
+        $this->incomingParams['response_to']['default'] = $this->camundaConfig['queue'];
 
         // connect to camunda api with basic auth
         $this->camundaUrl = sprintf($this->camundaConfig['apiUrl'], $this->camundaConfig['apiLogin'], $this->camundaConfig['apiPass']);
@@ -308,9 +309,9 @@ class CamundaConnectorIn
         // Add `response_to` and `response_command`
         if(isset($this->incomingParams['response_to']['value'])) {
             $this->incomingMessage['headers']['response_to'] = $this->incomingParams['response_to']['value'];
-            if(isset($this->incomingParams['response_command']['value'])) {
-                $this->incomingMessage['headers']['response_command'] = $this->incomingParams['response_command']['value'];
-            }
+        }
+        if(isset($this->incomingParams['response_command']['value'])) {
+            $this->incomingMessage['headers']['response_command'] = $this->incomingParams['response_command']['value'];
         }
 
         // return headers only
