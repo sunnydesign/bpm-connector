@@ -209,6 +209,7 @@ class CamundaConnectorOut extends CamundaBaseConnector
     public function isSynchronousMode(): bool
     {
         return
+            is_object($this->processVariables) &&
             property_exists($this->processVariables,'rabbitCorrelationId') &&
             property_exists($this->processVariables,'rabbitCorrelationReplyTo');
     }

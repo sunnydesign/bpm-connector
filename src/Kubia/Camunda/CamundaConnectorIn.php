@@ -152,8 +152,12 @@ class CamundaConnectorIn
     public function fetchExternalTasks(): array
     {
         // Fetch one external task of the given topic
+        $topics = [[
+            'topicName' => $this->externalTaskTopic,
+            'lockDuration' => $this->lockDuration
+        ]];
         $externalTaskQueryRequest = (new ExternalTaskRequest())
-            ->set('topics', [['topicName' => $this->externalTaskTopic, 'lockDuration' => $this->lockDuration]])
+            ->set('topics', $topics)
             ->set('workerId', $this->workerId)
             ->set('maxTasks', 1);
         $result = $this->externalTaskService->fetchAndLock($externalTaskQueryRequest);
