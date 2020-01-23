@@ -105,7 +105,7 @@ class CamundaConnectorIn
         $this->incomingParams['vhost']['default'] = $this->rmqConfig['vhost'];
         $this->incomingParams['retries']['default'] = $this->camundaConfig['retries'];
         $this->incomingParams['retryTimeout']['default'] = $this->camundaConfig['retryTimeout'];
-        $this->incomingParams['response_to']['default'] = $this->camundaConfig['queue'];
+        $this->incomingParams['response_to']['default'] = $this->rmqConfig['queue'];
 
         // connect to camunda api with basic auth
         $this->camundaUrl = sprintf($this->camundaConfig['apiUrl'], $this->camundaConfig['apiLogin'], $this->camundaConfig['apiPass']);
