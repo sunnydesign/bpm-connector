@@ -4,7 +4,6 @@ namespace Kubia\Camunda;
 
 use Camunda\Entity\Request\ExternalTaskRequest;
 use Camunda\Service\ExternalTaskService;
-use PhpAmqpLib\Exception\AMQPRuntimeException;
 use PhpAmqpLib\Message\AMQPMessage;
 use Kubia\Logger\Logger;
 
@@ -171,6 +170,7 @@ class CamundaConnectorOut extends CamundaBaseConnector
             $this->headers['camundaWorkerId']
         );
         Logger::stdout($logMessage, 'input', $this->rmqConfig['queue'], $this->logOwner, 0);
+
         if($this->rmqConfig['logging']) {
             Logger::elastic('bpm',
                 'in progress',

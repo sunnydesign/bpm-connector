@@ -39,7 +39,7 @@ class CamundaConnectorIn
     /** @var string */
     public $workerId;
 
-    /** @var Camunda\Service\ExternalTaskService */
+    /** @var \Camunda\Service\ExternalTaskService */
     public $externalTaskService;
 
     /** @var json string */
@@ -351,13 +351,20 @@ class CamundaConnectorIn
             'bpm-connector-in',
             0
         );
-        // @todo need task id and process variables or process id from variables
+
+        $messageJson = $externalTask->variables->message->value ?? '';
+        $message = json_decode($messageJson);
+        $headers = $message->headers ?? [];
+        $data = $message->data ?? [];
+        $headers->camundaProcessInstanceId = $externalTask->processInstanceId;
+        $headers->externalTaskId = $externalTask->id;
+
         if($this->rmqConfig['logging']) {
             Logger::elastic('bpm',
                 'in progress',
                 'fetched',
-                (object)[],
-                (object)[],
+                (object)$data,
+                (object)$headers,
                 [],
                 $this->channelLog,
                 $this->rmqConfig['queueLog']
