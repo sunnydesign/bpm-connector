@@ -368,24 +368,26 @@ class CamundaConnectorIn
     public function handleTask($externalTask): void
     {
         // Open connection for logging to elasticsearch
-        $this->connectionLog = new AMQPStreamConnection(
-            $this->rmqConfig['host'],
-            $this->rmqConfig['port'],
-            $this->rmqConfig['userLog'],
-            $this->rmqConfig['passLog'],
-            $this->rmqConfig['vhostLog'],
-            false,
-            'AMQPLAIN',
-            null,
-            'en_US',
-            3.0,
-            3.0,
-            null,
-            true,
-            60
-        );
-        $this->channelLog = $this->connectionLog->channel();
-        $this->channelLog->confirm_select(); // change channel mode
+        if($this->rmqConfig['logging']) {
+            $this->connectionLog = new AMQPStreamConnection(
+                $this->rmqConfig['host'],
+                $this->rmqConfig['port'],
+                $this->rmqConfig['userLog'],
+                $this->rmqConfig['passLog'],
+                $this->rmqConfig['vhostLog'],
+                false,
+                'AMQPLAIN',
+                null,
+                'en_US',
+                3.0,
+                3.0,
+                null,
+                true,
+                60
+            );
+            $this->channelLog = $this->connectionLog->channel();
+            $this->channelLog->confirm_select(); // change channel mode
+        }
 
         // Logging
         $this->logFetch($externalTask);
@@ -429,8 +431,10 @@ class CamundaConnectorIn
         $this->channel->basic_publish($msg, '', $this->incomingParams['queue']['value']);
 
         // Close channel
-        $this->channelLog->close();
-        $this->connectionLog->close();
+        if($this->rmqConfig['logging']) {
+            $this->channelLog->close();
+            $this->connectionLog->close();
+        }
         $this->channel->close();
         $this->connection->close();
     }

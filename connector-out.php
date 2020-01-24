@@ -42,23 +42,27 @@ $connection = new AMQPStreamConnection(
     60
 );
 
-// Create connection for logging
-$connectionLog = new AMQPStreamConnection(
-    RMQ_HOST,
-    RMQ_PORT,
-    RMQ_USER_LOG,
-    RMQ_PASS_LOG,
-    RMQ_VHOST_LOG,
-    false,
-    'AMQPLAIN',
-    null,
-    'en_US',
-    3.0,
-    3.0,
-    null,
-    true,
-    60
-);
+if(LOGGING) {
+    // Create connection for logging
+    $connectionLog = new AMQPStreamConnection(
+        RMQ_HOST,
+        RMQ_PORT,
+        RMQ_USER_LOG,
+        RMQ_PASS_LOG,
+        RMQ_VHOST_LOG,
+        false,
+        'AMQPLAIN',
+        null,
+        'en_US',
+        3.0,
+        3.0,
+        null,
+        true,
+        60
+    );
+} else {
+    $connectionLog = null;
+}
 
 // Config
 $camundaConfig = [
@@ -73,7 +77,8 @@ $rmqConfig = [
     'queueLog'         => RMQ_QUEUE_LOG,
     'vhostLog'         => RMQ_VHOST_LOG,
     'userLog'          => RMQ_USER_LOG,
-    'passLog'          => RMQ_PASS_LOG
+    'passLog'          => RMQ_PASS_LOG,
+    'logging'          => LOGGING
 ];
 
 // Run worker

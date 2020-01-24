@@ -66,7 +66,7 @@ class CamundaConnectorOut extends CamundaBaseConnector
                 $this->headers['camundaWorkerId']
             );
             Logger::stdout($logMessage, 'input', $this->rmqConfig['queue'], $this->logOwner, 0 );
-            if(isset($this->rmqConfig['queueLog'])) {
+            if($this->rmqConfig['logging']) {
                 Logger::elastic('bpm',
                     'in progress',
                     'complete',
@@ -170,16 +170,17 @@ class CamundaConnectorOut extends CamundaBaseConnector
             $this->headers['camundaWorkerId']
         );
         Logger::stdout($logMessage, 'input', $this->rmqConfig['queue'], $this->logOwner, 0);
-        Logger::elastic('bpm',
-            'in progress',
-            'error',
-            (object)($this->message['data'] ?? []),
-            (object)($this->headers ?? []),
-            ['type' => 'business', $logMessage],
-            $this->channelLog,
-            $this->rmqConfig['queueLog']
-        );
-
+        if($this->rmqConfig['logging']) {
+            Logger::elastic('bpm',
+                'in progress',
+                'error',
+                (object)($this->message['data'] ?? []),
+                (object)($this->headers ?? []),
+                ['type' => 'business', $logMessage],
+                $this->channelLog,
+                $this->rmqConfig['queueLog']
+            );
+        }
     }
 
     /**
