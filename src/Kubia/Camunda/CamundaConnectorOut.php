@@ -65,7 +65,18 @@ class CamundaConnectorOut extends CamundaBaseConnector
                 $this->headers['camundaProcessInstanceId'],
                 $this->headers['camundaWorkerId']
             );
-            Logger::log($logMessage, 'input', RMQ_QUEUE_OUT, $this->logOwner, 0 );
+            Logger::stdout($logMessage, 'input', $this->rmqConfig['queue'], $this->logOwner, 0 );
+            if(isset($this->rmqConfig['queueLog'])) {
+                Logger::elastic('bpm',
+                    'in progress',
+                    'complete',
+                    $this->data,
+                    $this->headers,
+                    [],
+                    $this->channel,
+                    $this->rmqConfig['queueLog']
+                );
+            }
         } else {
             // if is synchronous mode
             if($this->isSynchronousMode())
@@ -90,7 +101,7 @@ class CamundaConnectorOut extends CamundaBaseConnector
                 $externalTaskService->getResponseCode(),
                 $responseContentCombined ?? ""
             );
-            Logger::log($logMessage, 'input', RMQ_QUEUE_OUT, $this->logOwner, 1 );
+            $this->logError($logMessage);
         }
     }
 
@@ -113,15 +124,9 @@ class CamundaConnectorOut extends CamundaBaseConnector
                 $errorCode = $this->headers['camundaErrorCode'];
                 $this->errorTask($externalTaskService, $error['message'], $errorCode);
             } else {
-                $logMessage = sprintf("`%s` not set", 'camundaErrorCode');
-                Logger::log(
-                    $logMessage,
-                    '',
-                    '-',
-                    $this->logOwner,
-                    1
-                );
-                //exit(1);
+                $logMessage = '`camundaErrorCode` not set';
+                $this->logError($logMessage);
+                exit(1);
             }
         }
     }
@@ -164,7 +169,17 @@ class CamundaConnectorOut extends CamundaBaseConnector
             $this->headers['camundaProcessInstanceId'],
             $this->headers['camundaWorkerId']
         );
-        Logger::log($logMessage, 'input', RMQ_QUEUE_OUT, $this->logOwner, 0 );
+        Logger::stdout($logMessage, 'input', $this->rmqConfig['queue'], $this->logOwner, 0);
+        Logger::elastic('bpm',
+            'in progress',
+            'error',
+            $this->data,
+            $this->headers,
+            ['type' => 'business', $logMessage],
+            $this->channel,
+            $this->rmqConfig['queueLog']
+        );
+
     }
 
     /**
@@ -198,7 +213,7 @@ class CamundaConnectorOut extends CamundaBaseConnector
             $this->headers['camundaProcessInstanceId'],
             $this->headers['camundaWorkerId']
         );
-        Logger::log($logMessage, 'input', RMQ_QUEUE_OUT, $this->logOwner, 0 );
+        $this->logError($logMessage);
     }
 
     /**
@@ -282,7 +297,7 @@ class CamundaConnectorOut extends CamundaBaseConnector
      */
     public function callback(AMQPMessage $msg): void
     {
-        Logger::log(sprintf("Received %s", $msg->body), 'input', $this->rmqConfig['queue'], $this->logOwner, 0 );
+        Logger::stdout(sprintf("Received %s", $msg->body), 'input', $this->rmqConfig['queue'], $this->logOwner, 0 );
 
         $this->requestErrorMessage = 'Request error';
 

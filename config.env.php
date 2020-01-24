@@ -14,5 +14,6 @@ define('RMQ_VHOST', getenv('RMQ_VHOST'));
 define('RMQ_USER', getenv('RMQ_USER'));
 define('RMQ_PASS', getenv('RMQ_PASS'));
 define('RMQ_QUEUE_OUT', getenv('RMQ_QUEUE_OUT'));
+define('RMQ_QUEUE_LOG', getenv('RMQ_QUEUE_LOG'));
 define('RMQ_RECONNECT_TIMEOUT', getenv('RMQ_RECONNECT_TIMEOUT'));
 define('RMQ_TICK_TIMEOUT', getenv('RMQ_TICK_TIMEOUT'));

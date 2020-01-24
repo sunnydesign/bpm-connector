@@ -9,6 +9,16 @@ Using for transmitting variables from External Tasks to another external workers
 ### Planned
 - Nothing
 
+## [1.3] - 2020-01-24
+
+### Changed 
+
+- Version kubia/camunda from 0.2 to 0.3
+
+### Added
+
+- Logging to elasticsearch
+
 ## [1.2] - 2020-01-05
 
 ### Added
@@ -58,7 +68,8 @@ Using for transmitting variables from External Tasks to another external workers
 - Worker for test connector
 - README and CHANGELOG
 
-[unreleased]: https://gitlab.com/quancy-core/bpm-connector/-/tags/1.2
+[unreleased]: https://gitlab.com/quancy-core/bpm-connector/-/tags/1.3
+[1.3]: https://gitlab.com/quancy-core/bpm-connector/-/tags/1.3
 [1.2]: https://gitlab.com/quancy-core/bpm-connector/-/tags/1.2
 [1.1]: https://gitlab.com/quancy-core/bpm-connector/-/tags/1.1
 [1.0]: https://gitlab.com/quancy-core/bpm-connector/-/tags/1.0

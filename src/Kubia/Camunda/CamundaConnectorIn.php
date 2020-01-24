@@ -18,6 +18,12 @@ class CamundaConnectorIn
     /** @var string */
     public $camundaUrl;
 
+    /** @var \PhpAmqpLib\Connection\AMQPStreamConnection */
+    public $connection;
+
+    /** @var \PhpAmqpLib\Channel\AMQPChannel */
+    public $channel;
+
     /** @var string */
     public $externalTaskTopic;
 
@@ -118,27 +124,12 @@ class CamundaConnectorIn
      */
     public function run(): void
     {
-        Logger::log('Waiting for task. To exit press CTRL+C', '-', '-','bpm-connector-in', 0);
+        Logger::stdout('Waiting for task. To exit press CTRL+C', '-', '-','bpm-connector-in', 0);
 
         while (true) {
             // Quit on Ctrl+C
             pcntl_signal_dispatch();
             foreach ($this->fetchExternalTasks() as $externalTask) {
-                $logMessage = sprintf(
-                    "Fetched and locked from topic <%s> task <%s> of process <%s> process instance <%s>",
-                    $externalTask->topicName,
-                    $externalTask->id,
-                    $externalTask->processDefinitionKey,
-                    $externalTask->processInstanceId
-                );
-                Logger::log(
-                    $logMessage,
-                    'input',
-                    '-',
-                    'bpm-connector-in',
-                    0
-                );
-
                 call_user_func([$this, 'handleTask'], $externalTask);
             }
             usleep($this->camundaConfig['tickTimeout']);
@@ -197,14 +188,26 @@ class CamundaConnectorIn
             $externalTask->processDefinitionKey,
             $externalTask->processInstanceId
         );
-        Logger::log(
+        Logger::stdout(
             $logMessage,
             '',
             '-',
             'bpm-connector-in',
             1
         );
-        //exit(1);
+        // @todo need task id and process variables or process id from variables
+        if(isset($this->rmqConfig['queueLog'])) {
+            Logger::elastic('bpm',
+                'in progress',
+                'error',
+                (object)[],
+                (object)[],
+                ['type' => 'system', 'message' => $logMessage],
+                $this->channel,
+                $this->rmqConfig['queueLog']
+            );
+        }
+        exit(1);
     }
 
     /**
@@ -323,6 +326,40 @@ class CamundaConnectorIn
     }
 
     /**
+     * Log is task fetch and lock
+     * @param $externalTask
+     */
+    public function logFetch($externalTask): void
+    {
+        $logMessage = sprintf(
+            "Fetched and locked from topic <%s> task <%s> of process <%s> process instance <%s>",
+            $externalTask->topicName,
+            $externalTask->id,
+            $externalTask->processDefinitionKey,
+            $externalTask->processInstanceId
+        );
+        Logger::stdout(
+            $logMessage,
+            'input',
+            '-',
+            'bpm-connector-in',
+            0
+        );
+        // @todo need task id and process variables or process id from variables
+        if(isset($this->rmqConfig['queueLog'])) {
+            Logger::elastic('bpm',
+                'in progress',
+                'fetched',
+                (object)[],
+                (object)[],
+                [],
+                $this->channel,
+                $this->rmqConfig['queueLog']
+            );
+        }
+    }
+
+    /**
      * Topic Connector
      * Send task to Rabbit MQ
      * @param $externalTask
@@ -330,6 +367,14 @@ class CamundaConnectorIn
      */
     public function handleTask($externalTask): void
     {
+        // Open connection
+        $this->connection = new AMQPStreamConnection($this->rmqConfig['host'], $this->rmqConfig['port'], $this->rmqConfig['user'], $this->rmqConfig['pass'], $this->incomingParams['vhost']['value'], false, 'AMQPLAIN', null, 'en_US', 3.0, 3.0, null, true, 60);
+        $this->channel = $this->connection->channel();
+        $this->channel->confirm_select(); // change channel mode
+
+        // Logging
+        $this->logFetch($externalTask);
+
         // Fetch and assign Camunda unsafe params
         $this->assignCamundaUnsafeParams($externalTask);
 
@@ -343,21 +388,13 @@ class CamundaConnectorIn
         // Fetch and assign Camunda safe params to message.data.parameters
         $this->assignCamundaSafeParams($externalTask);
 
-        // Open connection
-        $connection = new AMQPStreamConnection($this->rmqConfig['host'], $this->rmqConfig['port'], $this->rmqConfig['user'], $this->rmqConfig['pass'], $this->incomingParams['vhost']['value'], false, 'AMQPLAIN', null, 'en_US', 3.0, 3.0, null, true, 60);
-        $channel = $connection->channel();
-        $channel->confirm_select(); // change channel mode
-
         // Send message
         $message = json_encode($this->incomingMessage);
         $msg = new AMQPMessage($message, ['delivery_mode' => 2]);
-        $channel->basic_publish($msg, '', $this->incomingParams['queue']['value']);
-
-        // For test
-        // $channel->basic_publish($msg, '', RMQ_QUEUE_ERR);
+        $this->channel->basic_publish($msg, '', $this->incomingParams['queue']['value']);
 
         // Close channel
-        $channel->close();
-        $connection->close();
+        $this->channel->close();
+        $this->connection->close();
     }
 }
