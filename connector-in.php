@@ -43,7 +43,10 @@ $rmqConfig = [
     'tickTimeout'      => RMQ_TICK_TIMEOUT,
     'reconnectTimeout' => RMQ_RECONNECT_TIMEOUT,
     'vhost'            => RMQ_VHOST,
-    'queueLog'         => RMQ_QUEUE_LOG
+    'queueLog'         => RMQ_QUEUE_LOG,
+    'vhostLog'         => RMQ_VHOST_LOG,
+    'userLog'          => RMQ_USER_LOG,
+    'passLog'          => RMQ_PASS_LOG
 ];
 
 // Run worker

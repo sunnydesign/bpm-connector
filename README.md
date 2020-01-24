@@ -7,8 +7,8 @@ Connector BPM-to-RabbitMQ-to-BPM for Camunda BPM on PHP. Using for transmitting 
 | docker.quancy.com.sg/bpm-connector | latest | 2019-12-13 |
 
 ## Queues
-- Incoming queue: `bpm_in` (can be changed, set in the connector diagram as input parameter)
 - Outgoing queue: `bpm_out`
+- Logging queue: `bpm_events`
 
 ## Requirements
 - php7.2-cli
@@ -31,7 +31,10 @@ Connector BPM-to-RabbitMQ-to-BPM for Camunda BPM on PHP. Using for transmitting 
 - RMQ_VHOST=quancy.com.sg
 - RMQ_USER=`<secret>`
 - RMQ_PASS=`<secret>`
-- RMQ_QUEUE_IN=bpm_in
+- RMQ_QUEUE_LOG=bpm_events
+- RMQ_VHOST_LOG=quancy.com.sg
+- RMQ_USER_LOG=`<secret>`
+- RMQ_PASS_LOG=`<secret>`
 - RMQ_QUEUE_OUT=bpm_out
 
 ## Input Parameters for connector from Camunda diagram

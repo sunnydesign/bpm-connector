@@ -117,6 +117,11 @@ class CamundaConnectorIn
         $this->camundaUrl = sprintf($this->camundaConfig['apiUrl'], $this->camundaConfig['apiLogin'], $this->camundaConfig['apiPass']);
         $this->externalTaskTopic = $this->camundaConfig['topic'];
         $this->externalTaskService = new ExternalTaskService($this->camundaUrl);
+
+        // Open connection
+        $this->connection = new AMQPStreamConnection($this->rmqConfig['host'], $this->rmqConfig['port'], $this->rmqConfig['user'], $this->rmqConfig['pass'], $this->incomingParams['vhost']['value'], false, 'AMQPLAIN', null, 'en_US', 3.0, 3.0, null, true, 60);
+        $this->channel = $this->connection->channel();
+        $this->channel->confirm_select(); // change channel mode
     }
 
     /**
@@ -203,7 +208,7 @@ class CamundaConnectorIn
                 (object)[],
                 (object)[],
                 ['type' => 'system', 'message' => $logMessage],
-                $this->channel,
+                $this->channelLog,
                 $this->rmqConfig['queueLog']
             );
         }
@@ -353,7 +358,7 @@ class CamundaConnectorIn
                 (object)[],
                 (object)[],
                 [],
-                $this->channel,
+                $this->channelLog,
                 $this->rmqConfig['queueLog']
             );
         }
@@ -367,16 +372,51 @@ class CamundaConnectorIn
      */
     public function handleTask($externalTask): void
     {
-        // Open connection
-        $this->connection = new AMQPStreamConnection($this->rmqConfig['host'], $this->rmqConfig['port'], $this->rmqConfig['user'], $this->rmqConfig['pass'], $this->incomingParams['vhost']['value'], false, 'AMQPLAIN', null, 'en_US', 3.0, 3.0, null, true, 60);
-        $this->channel = $this->connection->channel();
-        $this->channel->confirm_select(); // change channel mode
+        // Open connection for logging to elasticsearch
+        $this->connectionLog = new AMQPStreamConnection(
+            $this->rmqConfig['host'],
+            $this->rmqConfig['port'],
+            $this->rmqConfig['userLog'],
+            $this->rmqConfig['passLog'],
+            $this->rmqConfig['vhostLog'],
+            false,
+            'AMQPLAIN',
+            null,
+            'en_US',
+            3.0,
+            3.0,
+            null,
+            true,
+            60
+        );
+        $this->channelLog = $this->connectionLog->channel();
+        $this->channelLog->confirm_select(); // change channel mode
 
         // Logging
         $this->logFetch($externalTask);
 
         // Fetch and assign Camunda unsafe params
         $this->assignCamundaUnsafeParams($externalTask);
+
+        // Open connection
+        $this->connection = new AMQPStreamConnection(
+            $this->rmqConfig['host'],
+            $this->rmqConfig['port'],
+            $this->rmqConfig['user'],
+            $this->rmqConfig['pass'],
+            $this->incomingParams['vhost']['value'],
+            false,
+            'AMQPLAIN',
+            null,
+            'en_US',
+            3.0,
+            3.0,
+            null,
+            true,
+            60
+        );
+        $this->channel = $this->connection->channel();
+        $this->channel->confirm_select(); // change channel mode
 
         // Incoming message from rabbit mq
         $incomingMessageAsString = $externalTask->variables->message->value ?? json_encode(['data'=>'', 'headers'=>'']);
@@ -394,6 +434,8 @@ class CamundaConnectorIn
         $this->channel->basic_publish($msg, '', $this->incomingParams['queue']['value']);
 
         // Close channel
+        $this->channelLog->close();
+        $this->connectionLog->close();
         $this->channel->close();
         $this->connection->close();
     }

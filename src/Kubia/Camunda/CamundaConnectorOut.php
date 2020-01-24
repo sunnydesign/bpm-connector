@@ -73,7 +73,7 @@ class CamundaConnectorOut extends CamundaBaseConnector
                     $this->data,
                     $this->headers,
                     [],
-                    $this->channel,
+                    $this->channelLog,
                     $this->rmqConfig['queueLog']
                 );
             }
@@ -176,7 +176,7 @@ class CamundaConnectorOut extends CamundaBaseConnector
             $this->data,
             $this->headers,
             ['type' => 'business', $logMessage],
-            $this->channel,
+            $this->channelLog,
             $this->rmqConfig['queueLog']
         );
 
