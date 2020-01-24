@@ -357,7 +357,7 @@ class CamundaConnectorIn
         $headers = $message->headers ?? [];
         $data = $message->data ?? [];
         $headers->camundaProcessInstanceId = $externalTask->processInstanceId;
-        $headers->externalTaskId = $externalTask->id;
+        $headers->camundaExternalTaskId = $externalTask->id;
 
         if($this->rmqConfig['logging']) {
             Logger::elastic('bpm',
