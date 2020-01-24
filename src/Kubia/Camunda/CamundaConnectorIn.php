@@ -117,11 +117,6 @@ class CamundaConnectorIn
         $this->camundaUrl = sprintf($this->camundaConfig['apiUrl'], $this->camundaConfig['apiLogin'], $this->camundaConfig['apiPass']);
         $this->externalTaskTopic = $this->camundaConfig['topic'];
         $this->externalTaskService = new ExternalTaskService($this->camundaUrl);
-
-        // Open connection
-        $this->connection = new AMQPStreamConnection($this->rmqConfig['host'], $this->rmqConfig['port'], $this->rmqConfig['user'], $this->rmqConfig['pass'], $this->incomingParams['vhost']['value'], false, 'AMQPLAIN', null, 'en_US', 3.0, 3.0, null, true, 60);
-        $this->channel = $this->connection->channel();
-        $this->channel->confirm_select(); // change channel mode
     }
 
     /**
@@ -404,7 +399,7 @@ class CamundaConnectorIn
             $this->rmqConfig['port'],
             $this->rmqConfig['user'],
             $this->rmqConfig['pass'],
-            $this->incomingParams['vhost']['value'],
+            $this->rmqConfig['vhost'],
             false,
             'AMQPLAIN',
             null,
