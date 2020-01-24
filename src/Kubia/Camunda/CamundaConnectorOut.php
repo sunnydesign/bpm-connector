@@ -4,6 +4,7 @@ namespace Kubia\Camunda;
 
 use Camunda\Entity\Request\ExternalTaskRequest;
 use Camunda\Service\ExternalTaskService;
+use PhpAmqpLib\Exception\AMQPRuntimeException;
 use PhpAmqpLib\Message\AMQPMessage;
 use Kubia\Logger\Logger;
 

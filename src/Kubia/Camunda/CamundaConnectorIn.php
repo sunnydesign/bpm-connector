@@ -24,6 +24,12 @@ class CamundaConnectorIn
     /** @var \PhpAmqpLib\Channel\AMQPChannel */
     public $channel;
 
+    /** @var \PhpAmqpLib\Connection\AMQPStreamConnection */
+    public $connectionLog;
+
+    /** @var \PhpAmqpLib\Channel\AMQPChannel */
+    public $channelLog;
+
     /** @var string */
     public $externalTaskTopic;
 
