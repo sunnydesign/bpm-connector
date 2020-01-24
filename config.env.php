@@ -20,3 +20,4 @@ define('RMQ_USER_LOG', getenv('RMQ_USER_LOG'));
 define('RMQ_PASS_LOG', getenv('RMQ_PASS_LOG'));
 define('RMQ_RECONNECT_TIMEOUT', getenv('RMQ_RECONNECT_TIMEOUT'));
 define('RMQ_TICK_TIMEOUT', getenv('RMQ_TICK_TIMEOUT'));
+define('LOGGING', getenv('LOGGING'));
