@@ -2,7 +2,7 @@
 <?php
 
 /**
- * Camunda Connector
+ * Camunda Connector In
  *
  * BPM-to-RabbitMQ
  */
