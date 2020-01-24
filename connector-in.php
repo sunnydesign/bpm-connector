@@ -46,7 +46,8 @@ $rmqConfig = [
     'queueLog'         => RMQ_QUEUE_LOG,
     'vhostLog'         => RMQ_VHOST_LOG,
     'userLog'          => RMQ_USER_LOG,
-    'passLog'          => RMQ_PASS_LOG
+    'passLog'          => RMQ_PASS_LOG,
+    'logging'          => LOGGING
 ];
 
 // Run worker
