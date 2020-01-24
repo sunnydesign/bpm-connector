@@ -196,7 +196,7 @@ class CamundaConnectorIn
             1
         );
         // @todo need task id and process variables or process id from variables
-        if(isset($this->rmqConfig['queueLog'])) {
+        if($this->rmqConfig['logging']) {
             Logger::elastic('bpm',
                 'in progress',
                 'error',
@@ -346,7 +346,7 @@ class CamundaConnectorIn
             0
         );
         // @todo need task id and process variables or process id from variables
-        if(isset($this->rmqConfig['queueLog'])) {
+        if($this->rmqConfig['logging']) {
             Logger::elastic('bpm',
                 'in progress',
                 'fetched',
