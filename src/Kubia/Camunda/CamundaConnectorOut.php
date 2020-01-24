@@ -177,7 +177,7 @@ class CamundaConnectorOut extends CamundaBaseConnector
                 'error',
                 (object)($this->message['data'] ?? []),
                 (object)($this->headers ?? []),
-                ['type' => 'business', $logMessage],
+                ['type' => 'business', 'message' => $logMessage],
                 $this->channelLog,
                 $this->rmqConfig['queueLog']
             );
