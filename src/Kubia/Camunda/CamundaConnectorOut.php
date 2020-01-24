@@ -70,8 +70,8 @@ class CamundaConnectorOut extends CamundaBaseConnector
                 Logger::elastic('bpm',
                     'in progress',
                     'complete',
-                    (object)$this->message['data'] ?? (object)[],
-                    (object)$this->headers ?? (object)[],
+                    (object)($this->message['data'] ?? []),
+                    (object)($this->headers ?? []),
                     [],
                     $this->channelLog,
                     $this->rmqConfig['queueLog']
@@ -173,8 +173,8 @@ class CamundaConnectorOut extends CamundaBaseConnector
         Logger::elastic('bpm',
             'in progress',
             'error',
-            (object)$this->message['data'] ?? (object)[],
-            (object)$this->headers ?? (object)[],
+            (object)($this->message['data'] ?? []),
+            (object)($this->headers ?? []),
             ['type' => 'business', $logMessage],
             $this->channelLog,
             $this->rmqConfig['queueLog']
